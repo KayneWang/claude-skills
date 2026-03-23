@@ -2,8 +2,9 @@
   "name": "kayne-skills",
   "version": "1.0.0",
   "description": "A collection of reusable Claude Code skills for spec-driven development and headless web fetching",
-  "skills": [
-    "skills/spec-interview",
-    "skills/headless-web-fetch"
-  ]
+  "author": {
+    "name": "KayneWang"
+  },
+  "repository": "https://github.com/KayneWang/claude-skills",
+  "license": "MIT"
 }
