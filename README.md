@@ -35,10 +35,10 @@ Use Playwright's headless Chromium to fetch content from JavaScript-rendered pag
 
 ```bash
 # Interview user to generate a feature spec
-/kayne-skills:spec-interview
+/spec-interview
 
 # Fetch JS-rendered page content
-/kayne-skills:headless-web-fetch
+/headless-web-fetch
 ```
 
 ## License
