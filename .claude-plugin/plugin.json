@@ -1,0 +1,9 @@
+{
+  "name": "claude-skills",
+  "version": "1.0.0",
+  "description": "A collection of reusable Claude Code skills for spec-driven development and headless web fetching",
+  "skills": [
+    "skills/spec-interview",
+    "skills/headless-web-fetch"
+  ]
+}
