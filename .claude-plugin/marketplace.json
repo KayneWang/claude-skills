@@ -6,7 +6,7 @@
   "plugins": [
     {
       "name": "kayne-skills",
-      "source": ".",
+      "source": "./",
       "description": "A collection of reusable Claude Code skills for spec-driven development and headless web fetching",
       "version": "1.0.0"
     }
