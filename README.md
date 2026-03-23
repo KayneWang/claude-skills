@@ -25,20 +25,20 @@ Use Playwright's headless Chromium to fetch content from JavaScript-rendered pag
 
 ```bash
 # Add marketplace
-/plugin marketplace add KayneWang/claude-skills
+/plugin marketplace add KayneWang/kayne-skills
 
 # Install plugin
-/plugin install claude-skills
+/plugin install kayne-skills
 ```
 
 ## Usage
 
 ```bash
 # Interview user to generate a feature spec
-/claude-skills:spec-interview
+/kayne-skills:spec-interview
 
 # Fetch JS-rendered page content
-/claude-skills:headless-web-fetch
+/kayne-skills:headless-web-fetch
 ```
 
 ## License
