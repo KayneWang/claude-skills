@@ -7,6 +7,17 @@ function sanitize(name) {
   return String(name).replace(/[^a-zA-Z0-9._-]/g, "_");
 }
 
+function uniqueName(base, ext, used) {
+  let name = `${base}.${ext}`;
+  let i = 1;
+  while (used.has(name)) {
+    name = `${base}-${i}.${ext}`;
+    i++;
+  }
+  used.add(name);
+  return name;
+}
+
 async function main() {
   const url = process.argv[2];
   if (!url) {
@@ -31,6 +42,7 @@ async function main() {
 
   const rawAssets = Array.isArray(version.assets) ? version.assets : [];
   const assets = [];
+  const usedNames = new Set();
   for (const a of rawAssets) {
     const contents = (a.contents ?? []).map((c) => ({
       format: c.format,
@@ -41,7 +53,7 @@ async function main() {
     if (!best) continue;
 
     const layerName = a.layer_name ?? a.display_name ?? a.name ?? "asset";
-    const filename = `${sanitize(layerName)}.${best.format}`;
+    const filename = uniqueName(sanitize(layerName), best.format, usedNames);
     try {
       const file = await downloadAsset(best.url, filename);
       assets.push({
