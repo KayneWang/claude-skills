@@ -27,18 +27,22 @@ Align a single component/page's code to one Zeplin screen, verified by rendering
    Parse the printed JSON: `screen`, `tokens`, `layers`, `referenceImage`.
    Read `referenceImage` with the Read tool so you can see the design.
 
-2. **Establish the baseline.** Use the Playwright MCP to navigate to the route (`browser_navigate`) and screenshot it (`browser_take_screenshot`). Read the screenshot. Compare it to the reference image and the spec, and write a TodoWrite checklist of every discrepancy across three categories:
+2. **Establish the baseline.** Use the Playwright MCP to navigate to the route (`browser_navigate`) and screenshot it (`browser_take_screenshot`). **Keep track of the file path each screenshot is saved to** (the tool reports it) — you'll delete them in step 7. Read the screenshot. Compare it to the reference image and the spec, and write a TodoWrite checklist of every discrepancy across three categories:
    - **Visual style values** — colors, padding/margin, font size/weight/line-height, border-radius, borders, shadows (use exact values from `layers[].fills/textStyle/rect/borderRadius`).
    - **Layout structure** — flex/grid arrangement, alignment, order.
    - **Copy** — text content (from `layers[].content`).
 
 3. **Edit the code.** First detect the project's styling convention (Tailwind / CSS Modules / styled-components / plain CSS) by reading the target file and its neighbors. Apply changes using the spec's exact values, and **prefer existing design tokens/variables** in the codebase (and the `tokens.colors` names from the spec) over hardcoded values.
 
-4. **Re-render and verify.** Re-navigate and re-screenshot. Compare against the reference image and tick off checklist items.
+4. **Re-render and verify.** Re-navigate and re-screenshot (track these paths too). Compare against the reference image and tick off checklist items. Keep the browser open across iterations — don't close it between rounds.
 
 5. **Iterate** at most **3 rounds** (more only if the user asks). Stop when aligned or no longer improving.
 
 6. **Report.** Summarize what changed, any residual differences, and items needing a human decision (out-of-scope asset/icon mismatches, ambiguous screen↔component mapping).
+
+7. **Clean up (ALWAYS — even if you stopped early or hit an error).** Two things, every run:
+   - **Close the browser:** call `browser_close` so no Playwright session is left running.
+   - **Delete the temp images:** remove every screenshot you took (the paths tracked in steps 2 & 4) and the downloaded reference image (`rm -rf /tmp/zeplin-sync` covers the reference image; also `rm` the tracked screenshot paths if they live elsewhere).
 
 ## Scope (v1)
 
