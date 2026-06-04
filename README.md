@@ -21,6 +21,19 @@ Use Playwright's headless Chromium to fetch content from JavaScript-rendered pag
 - Configurable scroll depth and wait time for lazy-loaded content
 - Custom User-Agent to avoid bot detection
 
+### zeplin-sync
+
+Align a component's styling to a Zeplin design. Given a Zeplin screen URL and the target code file, it reads the design spec, edits the code, and verifies the result with a render → screenshot → compare loop.
+
+**Workflow:** Fetch Zeplin spec + reference image (`zeplin.js`) → screenshot the running component (Playwright MCP) → list discrepancies → edit code → re-render and compare → iterate (≤3 rounds) → report
+
+**Aligns:** visual style values (colors, spacing, typography, radius), layout structure, and copy. Asset/icon export is out of scope.
+
+**Requirements:**
+- `ZEPLIN_TOKEN` env var (Zeplin web → Profile → Developer → Create new token)
+- The Playwright MCP enabled (for screenshots)
+- The project's dev server already running, plus the component's route/URL
+
 ## Installation
 
 ```bash
@@ -39,6 +52,10 @@ Use Playwright's headless Chromium to fetch content from JavaScript-rendered pag
 
 # Fetch JS-rendered page content
 /headless-web-fetch
+
+# Align a component to its Zeplin design
+# e.g. "用 zeplin-sync 把 <组件> 对齐到 <Zeplin screen 链接>，路由是 <url>"
+/zeplin-sync
 ```
 
 ## License
