@@ -46,3 +46,23 @@ test("normalize builds screen meta, tokens, and flat layers", () => {
   assert.deepEqual(spec.layers[1].fills, [{ hex: "#007aff", token: "primary" }]);
   assert.equal(spec.layers[1].textStyle, null);
 });
+
+test("normalize drops non-color fills and defaults missing fills/rect", () => {
+  const screen = { name: "Empty", image: { width: 100, height: 200 } };
+  const version = {
+    layers: [
+      {
+        id: "mixed", type: "shape", name: "Mixed",
+        rect: { x: 0, y: 0, width: 50, height: 50 },
+        fills: [{ type: "gradient" }, { type: "color", color: { r: 255, g: 0, b: 0, a: 1 } }],
+      },
+      { id: "bare", type: "group", name: "Bare" },
+    ],
+  };
+
+  const spec = normalize({ screen, version });
+
+  assert.deepEqual(spec.layers[0].fills, [{ hex: "#ff0000", token: null }]);
+  assert.deepEqual(spec.layers[1].fills, []);
+  assert.deepEqual(spec.layers[1].rect, { x: undefined, y: undefined, width: undefined, height: undefined });
+});
