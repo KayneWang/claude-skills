@@ -1,0 +1,40 @@
+import { parseScreenUrl } from "./lib/parse-url.js";
+import { normalize } from "./lib/normalize.js";
+import { getScreen, getScreenVersion, getProjectColors, downloadImage } from "./lib/zeplin-api.js";
+
+async function main() {
+  const url = process.argv[2];
+  if (!url) {
+    console.error("Usage: node zeplin.js <zeplin-screen-url>");
+    process.exit(2);
+  }
+  const token = process.env.ZEPLIN_TOKEN;
+  if (!token) {
+    console.error(
+      "ZEPLIN_TOKEN is not set.\n" +
+        "Create one at Zeplin web → Profile → Developer → Create new token, then:\n" +
+        "  export ZEPLIN_TOKEN=<your token>"
+    );
+    process.exit(2);
+  }
+
+  const { projectId, screenId, versionId } = parseScreenUrl(url);
+  const [screen, version, colorsResp] = await Promise.all([
+    getScreen(token, projectId, screenId),
+    getScreenVersion(token, projectId, screenId, versionId),
+    getProjectColors(token, projectId).catch(() => []),
+  ]);
+
+  const colors = Array.isArray(colorsResp) ? colorsResp : colorsResp.colors ?? [];
+  const spec = normalize({ screen, version, colors });
+
+  const imageUrl = screen.image?.originalUrl ?? screen.image?.original_url;
+  spec.referenceImage = imageUrl ? await downloadImage(imageUrl, screenId) : null;
+
+  console.log(JSON.stringify(spec, null, 2));
+}
+
+main().catch((err) => {
+  console.error(err.message);
+  process.exit(1);
+});
