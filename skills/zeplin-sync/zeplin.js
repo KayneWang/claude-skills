@@ -19,14 +19,16 @@ async function main() {
   }
 
   const { projectId, screenId, versionId } = parseScreenUrl(url);
-  const [screen, version, colorsResp, annotations] = await Promise.all([
+  const [screen, version, colorsResp, annotationsResp] = await Promise.all([
     getScreen(token, projectId, screenId),
     getScreenVersion(token, projectId, screenId, versionId),
     getProjectColors(token, projectId).catch(() => []),
     getAnnotations(token, projectId, screenId).catch(() => []),
   ]);
 
+  // Both endpoints may return a bare array or a wrapped object; unwrap defensively.
   const colors = Array.isArray(colorsResp) ? colorsResp : colorsResp.colors ?? [];
+  const annotations = Array.isArray(annotationsResp) ? annotationsResp : annotationsResp.annotations ?? [];
   const spec = normalize({ screen, version, colors, annotations });
 
   // REST API uses snake_case (original_url); keep camelCase as a defensive fallback.
