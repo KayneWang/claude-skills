@@ -2,12 +2,14 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { flattenLayers, normalize } from "../lib/normalize.js";
 
-test("flattenLayers walks nested groups depth-first", () => {
+test("flattenLayers walks nested groups depth-first with depth", () => {
   const tree = [
     { id: "g", type: "group", layers: [{ id: "a", type: "text" }, { id: "b", type: "shape" }] },
     { id: "c", type: "text" },
   ];
-  assert.deepEqual(flattenLayers(tree).map((l) => l.id), ["g", "a", "b", "c"]);
+  const out = flattenLayers(tree);
+  assert.deepEqual(out.map(({ layer }) => layer.id), ["g", "a", "b", "c"]);
+  assert.deepEqual(out.map(({ depth }) => depth), [0, 1, 1, 0]);
 });
 
 test("normalize builds screen meta, tokens, and flat layers", () => {

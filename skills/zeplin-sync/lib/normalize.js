@@ -1,9 +1,11 @@
 import { rgbaToHex } from "./color.js";
 
-export function flattenLayers(layers = [], acc = []) {
+// Walk nested layer groups depth-first, tracking nesting depth.
+// Returns { layer, depth } pairs so the flat output can still convey hierarchy.
+export function flattenLayers(layers = [], depth = 0, acc = []) {
   for (const layer of layers) {
-    acc.push(layer);
-    if (layer.layers?.length) flattenLayers(layer.layers, acc);
+    acc.push({ layer, depth });
+    if (layer.layers?.length) flattenLayers(layer.layers, depth + 1, acc);
   }
   return acc;
 }
@@ -43,7 +45,7 @@ export function normalize({ screen, version, colors = [] }) {
     tokenColors[c.name] = hex;
   }
 
-  const layers = flattenLayers(version.layers).map((l) => ({
+  const layers = flattenLayers(version.layers).map(({ layer: l }) => ({
     id: l.id,
     type: l.type,
     name: l.name ?? null,
