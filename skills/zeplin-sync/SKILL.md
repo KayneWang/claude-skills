@@ -27,7 +27,7 @@ Align a single component/page's code to one Zeplin screen, verified by rendering
    Parse the printed JSON: `screen`, `tokens`, `layers`, `referenceImage`.
    Read `referenceImage` with the Read tool so you can see the design.
 
-2. **Establish the baseline.** Use the Playwright MCP to navigate to the route (`browser_navigate`) and screenshot it (`browser_take_screenshot`). **Keep track of the file path each screenshot is saved to** (the tool reports it) — you'll delete them in step 7. Read the screenshot. Compare it to the reference image and the spec, and write a TodoWrite checklist of every discrepancy across three categories:
+2. **Establish the baseline.** Use the Playwright MCP to navigate to the route (`browser_navigate`) and screenshot it (`browser_take_screenshot`). **Keep track of the file path each screenshot is saved to** (the tool reports it) — you'll delete them in the cleanup step. Read the screenshot. Compare it to the reference image and the spec, and write a TodoWrite checklist of every discrepancy across three categories:
    - **Visual style values** — colors, padding/margin, font size/weight/line-height, border-radius, borders, shadows (use exact values from `layers[].fills/textStyle/rect/borderRadius`).
    - **Layout structure** — flex/grid arrangement, alignment, order.
    - **Copy** — text content (from `layers[].content`).
@@ -40,19 +40,28 @@ Align a single component/page's code to one Zeplin screen, verified by rendering
    - **font-family — be careful.** Zeplin's `textStyle.fontFamily` is often a platform/system font (e.g. `PingFang`, `SF Pro`) with no meaning on the web. Only set/change font-family if that family is actually configured in `tailwind.config` `fontFamily` (or loaded as a web font in the project). Otherwise **leave the project's existing font-family alone** — don't hardcode the design's font name.
    - Same principle for color/size: reuse the configured token if it matches; never invent a class name that isn't in the config.
 
-4. **Re-render and verify.** Re-navigate and re-screenshot (track these paths too). Compare against the reference image and tick off checklist items. Keep the browser open across iterations — don't close it between rounds.
+4. **Sync static assets (only if the design has images/icons to wire).**
+   1. **Export:** run `node <skill-dir>/assets.js "<screen-url>"`, read the manifest (`assets[]` with `file`, `hash`, `layerName`, `format`). Read key asset images so you can see them.
+   2. **List the page's in-use assets — from component source first.** Read the target component (and its imported children as needed) and collect every asset reference (`import x from '...'`, `<img src>`, CSS `url(...)`); resolve each to its **source file path** in the project (this is the "recorded location"). Use the rendered page only to confirm they actually display.
+   3. **Decide per asset** by correlating each manifest asset to an in-use asset via `layerName` + the layer `rect` (position/size from step 1's spec) + the reference image, then act:
+      - **Matches an in-use asset, hashes equal** (hash the existing source file with the same sha256 as `lib/detect.js`) → **skip** (already up to date).
+      - **Matches an in-use asset, hashes differ** → **replace in place**: copy the manifest `file` over the recorded source file path.
+      - **No in-use match (new asset)** → copy `file` into the project's asset dir (detect convention: `public/`, `src/assets/`, `assets/`) and wire the reference. **If the mapping is ambiguous, ask the user.**
+      - **In-use asset with no matching Zeplin asset** → leave it alone.
 
-5. **Iterate** at most **3 rounds** (more only if the user asks). Stop when aligned or no longer improving.
+5. **Re-render and verify.** Re-navigate and re-screenshot (track these paths too). Compare against the reference image and tick off checklist items. Keep the browser open across iterations — don't close it between rounds.
 
-6. **Report.** Summarize what changed, any residual differences, and items needing a human decision (out-of-scope asset/icon mismatches, ambiguous screen↔component mapping).
+6. **Iterate** at most **3 rounds** (more only if the user asks). Stop when aligned or no longer improving.
 
-7. **Clean up (ALWAYS — even if you stopped early or hit an error).** Two things, every run:
+7. **Report.** Summarize what changed (styles + assets: skipped / replaced / added), any residual differences, and items needing a human decision (ambiguous asset mapping, unresolved alias paths, screen↔component mapping).
+
+8. **Clean up (ALWAYS — even if you stopped early or hit an error).**
    - **Close the browser:** call `browser_close` so no Playwright session is left running.
-   - **Delete the temp images:** `rm` every screenshot you took (the paths tracked in steps 2 & 4) and the downloaded reference image. Use the **actual `referenceImage` path printed by `zeplin.js`** for the latter — it lives under the OS temp dir (`os.tmpdir()`), which is **not** `/tmp` on macOS, so don't assume a hardcoded path.
+   - **Delete the temp images:** `rm` every screenshot you took (the paths tracked in steps 2 & 5), the downloaded reference image (use the actual `referenceImage` path printed by `zeplin.js` — it lives under `os.tmpdir()`, which is **not** `/tmp` on macOS), and the exported assets dir (`<tmpdir>/zeplin-sync/assets/`).
 
-## Scope (v1)
+## Scope
 
-In scope: visual style values, layout structure, copy. **Out of scope:** exporting/wiring icons or image assets — report these as residual items rather than attempting them.
+In scope: visual style values, layout structure, copy, and static assets (export + page-scoped incremental wiring: skip unchanged, replace changed in place, add new). **Out of scope:** automatic asset↔code mapping heuristics and multi-density `srcset` — for ambiguous mappings, ask the user.
 
 ## Errors
 
@@ -60,3 +69,5 @@ In scope: visual style values, layout structure, copy. **Out of scope:** exporti
 - URL parse failure → `zeplin.js` prints the expected URL form.
 - Route blank/404 → confirm the dev server is running and the route is correct.
 - Can't confidently map the screen to a component → ask the user instead of guessing.
+- `assets.js` prints an empty `assets: []` → the screen has no exportable assets; skip the asset step.
+- Can't resolve an in-use asset reference to a real file (build alias like `@/assets`, bundled output) → treat the mapping as ambiguous and ask the user which file to replace.

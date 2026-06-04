@@ -40,3 +40,14 @@ export async function downloadImage(url, screenId) {
   await writeFile(path, buf);
   return path;
 }
+
+export async function downloadAsset(url, filename) {
+  const dir = join(tmpdir(), "zeplin-sync", "assets");
+  await mkdir(dir, { recursive: true });
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Failed to download asset ${filename}: ${res.status} ${res.statusText}`);
+  const buf = Buffer.from(await res.arrayBuffer());
+  const path = join(dir, filename);
+  await writeFile(path, buf);
+  return path;
+}
