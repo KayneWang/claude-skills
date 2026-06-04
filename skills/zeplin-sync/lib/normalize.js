@@ -54,9 +54,15 @@ function normalizeShadows(shadows = []) {
   }));
 }
 
-// TEMPORARY stub — replaced by Task 3 with the real annotation mapping.
+// Screen annotations carry designer implementation hints. The annotation `type`
+// may be an object ({ name }) or a bare string depending on the endpoint shape;
+// position may be `position` or `rect`. Read defensively.
 function normalizeAnnotations(annotations = []) {
-  return annotations.map((a) => ({ type: a.type ?? null, content: a.content ?? null, rect: a.rect ?? null }));
+  return annotations.map((a) => ({
+    type: a.type?.name ?? a.type ?? null,
+    content: a.content ?? null,
+    rect: a.position ?? a.rect ?? null,
+  }));
 }
 
 export function normalize({ screen, version, colors = [], annotations = [] }) {

@@ -30,6 +30,10 @@ export function getProjectColors(token, projectId) {
   return getJson(`${BASE}/projects/${projectId}/colors`, token);
 }
 
+export function getAnnotations(token, projectId, screenId) {
+  return getJson(`${BASE}/projects/${projectId}/screens/${screenId}/annotations`, token);
+}
+
 export async function downloadImage(url, screenId) {
   const dir = join(tmpdir(), "zeplin-sync");
   await mkdir(dir, { recursive: true });

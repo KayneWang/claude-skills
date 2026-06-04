@@ -135,3 +135,21 @@ test("normalize emits per-range textStyles", () => {
     lineHeight: null, letterSpacing: null, textAlign: null, color: "#ff0000",
   });
 });
+
+test("normalize maps annotations and defaults to empty", () => {
+  const screen = { name: "A", image: { width: 1, height: 1 } };
+  const version = { layers: [] };
+
+  const withNone = normalize({ screen, version });
+  assert.deepEqual(withNone.annotations, []);
+
+  const annotations = [
+    { type: { name: "comment" }, content: "Use the shared Button here", position: { x: 10, y: 20 } },
+    { type: "note", content: "Spacing is 8px", rect: { x: 1, y: 2 } },
+  ];
+  const withSome = normalize({ screen, version, annotations });
+  assert.deepEqual(withSome.annotations, [
+    { type: "comment", content: "Use the shared Button here", rect: { x: 10, y: 20 } },
+    { type: "note", content: "Spacing is 8px", rect: { x: 1, y: 2 } },
+  ]);
+});
