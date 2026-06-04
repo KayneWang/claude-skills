@@ -42,7 +42,7 @@ Align a single component/page's code to one Zeplin screen, verified by rendering
 
 7. **Clean up (ALWAYS — even if you stopped early or hit an error).** Two things, every run:
    - **Close the browser:** call `browser_close` so no Playwright session is left running.
-   - **Delete the temp images:** remove every screenshot you took (the paths tracked in steps 2 & 4) and the downloaded reference image (`rm -rf /tmp/zeplin-sync` covers the reference image; also `rm` the tracked screenshot paths if they live elsewhere).
+   - **Delete the temp images:** `rm` every screenshot you took (the paths tracked in steps 2 & 4) and the downloaded reference image. Use the **actual `referenceImage` path printed by `zeplin.js`** for the latter — it lives under the OS temp dir (`os.tmpdir()`), which is **not** `/tmp` on macOS, so don't assume a hardcoded path.
 
 ## Scope (v1)
 

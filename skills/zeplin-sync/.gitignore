@@ -1,4 +1,0 @@
-# Dev-only calibration helper may contain a pasted token — never commit it
-scripts/calibrate.js
-# Recorded real API responses (may contain project data)
-test/fixtures/*.raw.json
