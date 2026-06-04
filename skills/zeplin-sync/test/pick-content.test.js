@@ -36,6 +36,19 @@ test("empty contents -> null", () => {
   assert.equal(pickBestContent([]), null);
 });
 
+test("ignores non-web formats like pdf, picks png@2x", () => {
+  const r = pickBestContent([
+    { format: "pdf", density: 1, url: "doc" },
+    { format: "png", density: 1, url: "p1" },
+    { format: "png", density: 2, url: "p2" },
+  ]);
+  assert.deepEqual(r, { format: "png", density: 2, url: "p2" });
+});
+
+test("only non-web raster (pdf) and no svg -> null", () => {
+  assert.equal(pickBestContent([{ format: "pdf", density: 1, url: "doc" }]), null);
+});
+
 test("ignores items without a url", () => {
   assert.equal(pickBestContent([{ format: "png", density: 2 }]), null);
 });
