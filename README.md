@@ -4,14 +4,6 @@
 
 ## Skills
 
-### spec-interview
-
-在实现任何重要功能之前，先用 `AskUserQuestion` 与用户多轮访谈、厘清需求，然后生成结构化的 spec 文档。实现放到单独的会话里进行。
-
-**流程：** 探索现有代码 → 访谈用户（2-4 轮）→ 生成 spec → 保存到 `specs/` → 结束
-
-灵感来自 Claude Code 团队的[这个思路](https://x.com/trq212/status/2005315275026260309)。
-
 ### headless-web-fetch
 
 用 Playwright 的无头 Chromium 抓取 `WebFetch` 处理不了的 JS 渲染页面（X/Twitter、SPA、各类 dashboard）。
@@ -47,9 +39,6 @@
 ## 使用
 
 ```bash
-# 访谈用户、生成功能 spec
-/spec-interview
-
 # 抓取 JS 渲染的页面内容
 /headless-web-fetch
 

@@ -20,7 +20,6 @@ Each skill is a directory under `skills/` containing a `SKILL.md` with YAML fron
 
 ## Current Skills
 
-- **spec-interview** — Pure-prompt skill. Interviews users via `AskUserQuestion` to produce specs in `specs/`. No runtime code.
 - **headless-web-fetch** — Has runtime code (`fetch.js`). Uses Playwright to fetch JS-rendered pages. Auto-installs dependencies on first run. Called via `node <skill-dir>/fetch.js <url>`.
 - **zeplin-sync** — Has runtime code (`zeplin.js`). Given a Zeplin screen URL (needs `ZEPLIN_TOKEN`), prints a normalized design-spec JSON + downloads the reference image; SKILL.md then drives a render/screenshot/compare loop (via Playwright MCP) to align a component's code to the design. Called via `node <skill-dir>/zeplin.js <screen-url>`.
 
