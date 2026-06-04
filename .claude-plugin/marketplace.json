@@ -7,8 +7,8 @@
     {
       "name": "kayne-skills",
       "source": "./",
-      "description": "A collection of reusable Claude Code skills for spec-driven development and headless web fetching",
-      "version": "1.0.0"
+      "description": "A collection of reusable Claude Code skills: spec-driven development, headless web fetching, and Zeplin design-to-code alignment",
+      "version": "1.1.0"
     }
   ]
 }

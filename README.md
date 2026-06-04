@@ -1,60 +1,60 @@
 # Claude Skills
 
-A collection of reusable [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills, packaged as a plugin for team sharing.
+一组可复用的 [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skill，打包成插件，方便团队共享。
 
 ## Skills
 
 ### spec-interview
 
-Before implementing any significant feature, interview the user using `AskUserQuestion` to clarify requirements, then generate a structured spec document. Implementation happens in a separate session.
+在实现任何重要功能之前，先用 `AskUserQuestion` 与用户多轮访谈、厘清需求，然后生成结构化的 spec 文档。实现放到单独的会话里进行。
 
-**Workflow:** Explore existing code → Interview user (2-4 rounds) → Generate spec → Save to `specs/` → Stop
+**流程：** 探索现有代码 → 访谈用户（2-4 轮）→ 生成 spec → 保存到 `specs/` → 结束
 
-Inspired by [this approach](https://x.com/trq212/status/2005315275026260309) from the Claude Code team.
+灵感来自 Claude Code 团队的[这个思路](https://x.com/trq212/status/2005315275026260309)。
 
 ### headless-web-fetch
 
-Use Playwright's headless Chromium to fetch content from JavaScript-rendered pages (X/Twitter, SPAs, dashboards) that `WebFetch` can't handle.
+用 Playwright 的无头 Chromium 抓取 `WebFetch` 处理不了的 JS 渲染页面（X/Twitter、SPA、各类 dashboard）。
 
-**Features:**
-- Auto-installs Playwright + Chromium on first run
-- Configurable scroll depth and wait time for lazy-loaded content
-- Custom User-Agent to avoid bot detection
+**特性：**
+- 首次运行自动安装 Playwright + Chromium
+- 可配置滚动深度和等待时间，加载懒加载内容
+- 自定义 User-Agent，规避机器人检测
 
 ### zeplin-sync
 
-Align a component's styling to a Zeplin design. Given a Zeplin screen URL and the target code file, it reads the design spec, edits the code, and verifies the result with a render → screenshot → compare loop.
+把组件样式对齐到 Zeplin 设计稿。给定 Zeplin screen 链接和目标代码文件，它会读取设计规格、修改代码，并通过「渲染 → 截图 → 比对」闭环验证结果。
 
-**Workflow:** Fetch Zeplin spec + reference image (`zeplin.js`) → screenshot the running component (Playwright MCP) → list discrepancies → edit code → re-render and compare → iterate (≤3 rounds) → report
+**流程：** 抓取 Zeplin 规格 + 参考图（`zeplin.js`）→ 截图运行中的组件（Playwright MCP）→ 列出差异 → 修改代码 → 重新渲染比对 → 迭代（≤3 轮）→ 输出报告
 
-**Aligns:** visual style values (colors, spacing, typography, radius), layout structure, and copy. Asset/icon export is out of scope.
+**对齐范围：** 视觉样式值（颜色、间距、字体、圆角）、布局结构、文案内容。切图/资源导出暂不在范围内。
 
-**Requirements:**
-- `ZEPLIN_TOKEN` env var (Zeplin web → Profile → Developer → Create new token)
-- The Playwright MCP enabled (for screenshots)
-- The project's dev server already running, plus the component's route/URL
+**前置要求：**
+- `ZEPLIN_TOKEN` 环境变量（Zeplin 网页端 → Profile → Developer → Create new token）
+- 启用 Playwright MCP（用于截图）
+- 项目 dev server 已在运行，并提供组件的路由/URL
 
-## Installation
+## 安装
 
 ```bash
-# Add marketplace
+# 添加 marketplace
 /plugin marketplace add KayneWang/claude-skills
 
-# Install plugin
+# 安装插件
 /plugin install kayne-skills
 ```
 
-## Usage
+## 使用
 
 ```bash
-# Interview user to generate a feature spec
+# 访谈用户、生成功能 spec
 /spec-interview
 
-# Fetch JS-rendered page content
+# 抓取 JS 渲染的页面内容
 /headless-web-fetch
 
-# Align a component to its Zeplin design
-# e.g. "用 zeplin-sync 把 <组件> 对齐到 <Zeplin screen 链接>，路由是 <url>"
+# 把组件对齐到 Zeplin 设计稿
+# 例如：“用 zeplin-sync 把 <组件> 对齐到 <Zeplin screen 链接>，路由是 <url>”
 /zeplin-sync
 ```
 
