@@ -1,6 +1,6 @@
 import { parseScreenUrl } from "./lib/parse-url.js";
 import { normalize } from "./lib/normalize.js";
-import { getScreen, getScreenVersion, getProjectColors, downloadImage } from "./lib/zeplin-api.js";
+import { getScreen, getScreenVersion, getProjectColors, getAnnotations, downloadImage } from "./lib/zeplin-api.js";
 
 async function main() {
   const url = process.argv[2];
@@ -19,14 +19,17 @@ async function main() {
   }
 
   const { projectId, screenId, versionId } = parseScreenUrl(url);
-  const [screen, version, colorsResp] = await Promise.all([
+  const [screen, version, colorsResp, annotationsResp] = await Promise.all([
     getScreen(token, projectId, screenId),
     getScreenVersion(token, projectId, screenId, versionId),
     getProjectColors(token, projectId).catch(() => []),
+    getAnnotations(token, projectId, screenId).catch(() => []),
   ]);
 
+  // Both endpoints may return a bare array or a wrapped object; unwrap defensively.
   const colors = Array.isArray(colorsResp) ? colorsResp : colorsResp.colors ?? [];
-  const spec = normalize({ screen, version, colors });
+  const annotations = Array.isArray(annotationsResp) ? annotationsResp : annotationsResp.annotations ?? [];
+  const spec = normalize({ screen, version, colors, annotations });
 
   // REST API uses snake_case (original_url); keep camelCase as a defensive fallback.
   const imageUrl = screen.image?.original_url ?? screen.image?.originalUrl;

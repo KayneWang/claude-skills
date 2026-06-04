@@ -24,20 +24,21 @@ Align a single component/page's code to one Zeplin screen, verified by rendering
 
 1. **Fetch the design spec.** Run:
    `node <skill-dir>/zeplin.js "<screen-url>"`
-   Parse the printed JSON: `screen`, `tokens`, `layers`, `referenceImage`.
+   Parse the printed JSON: `screen`, `tokens`, `annotations`, `layers`, `referenceImage`. Each layer may also carry `componentName` (marks a reusable component instance — prefer the existing codebase component over restyling), `shadows`, `borders`, per-range `textStyles`, and `sourceId`.
    Read `referenceImage` with the Read tool so you can see the design.
 
 2. **Establish the baseline.** Use the Playwright MCP to navigate to the route (`browser_navigate`) and screenshot it (`browser_take_screenshot`). **Keep track of the file path each screenshot is saved to** (the tool reports it) — you'll delete them in the cleanup step. Read the screenshot. Compare it to the reference image and the spec, and write a TodoWrite checklist of every discrepancy across three categories:
-   - **Visual style values** — colors, padding/margin, font size/weight/line-height, border-radius, borders, shadows (use exact values from `layers[].fills/textStyle/rect/borderRadius`).
+   - **Visual style values** — colors, padding/margin, font size/weight/line-height, border-radius, borders, shadows (use exact values from `layers[].fills/textStyles/borders/shadows/rect/borderRadius`).
    - **Layout structure** — flex/grid arrangement, alignment, order.
    - **Copy** — text content (from `layers[].content`).
+   - **Implementation hints** — if `annotations[]` is non-empty, read each `annotation.content` for designer notes on behavior/spacing/component reuse and fold them into the checklist.
 
 3. **Edit the code.** First detect the project's styling convention (Tailwind / CSS Modules / styled-components / plain CSS) by reading the target file and its neighbors. Apply changes using the spec's exact values, and **prefer existing design tokens/variables** in the codebase (and the `tokens.colors` names from the spec) over hardcoded values.
 
    **If the project uses Tailwind**, express the design values the Tailwind way — don't just inline raw CSS:
    - **Read `tailwind.config.{js,ts,cjs,mjs}`** (incl. `theme.extend`) first to learn the configured `colors`, `spacing`, `fontSize`, `fontFamily`, `borderRadius` tokens.
    - **Match a theme token when the value matches it** → use the semantic class (`text-primary`, `text-sm`, `rounded-lg`, `p-4`). Only fall back to **arbitrary values** when nothing matches: `text-[#ff6b8b]`, `text-[14px]`, `leading-[20px]`, `tracking-[0.5px]`, `rounded-[16px]`.
-   - **font-family — be careful.** Zeplin's `textStyle.fontFamily` is often a platform/system font (e.g. `PingFang`, `SF Pro`) with no meaning on the web. Only set/change font-family if that family is actually configured in `tailwind.config` `fontFamily` (or loaded as a web font in the project). Otherwise **leave the project's existing font-family alone** — don't hardcode the design's font name.
+   - **font-family — be careful.** Zeplin's `textStyles[].fontFamily` is often a platform/system font (e.g. `PingFang`, `SF Pro`) with no meaning on the web. Only set/change font-family if that family is actually configured in `tailwind.config` `fontFamily` (or loaded as a web font in the project). Otherwise **leave the project's existing font-family alone** — don't hardcode the design's font name.
    - Same principle for color/size: reuse the configured token if it matches; never invent a class name that isn't in the config.
 
 4. **Sync static assets (only if the design has images/icons to wire).**
