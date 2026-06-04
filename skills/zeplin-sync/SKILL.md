@@ -34,6 +34,12 @@ Align a single component/page's code to one Zeplin screen, verified by rendering
 
 3. **Edit the code.** First detect the project's styling convention (Tailwind / CSS Modules / styled-components / plain CSS) by reading the target file and its neighbors. Apply changes using the spec's exact values, and **prefer existing design tokens/variables** in the codebase (and the `tokens.colors` names from the spec) over hardcoded values.
 
+   **If the project uses Tailwind**, express the design values the Tailwind way — don't just inline raw CSS:
+   - **Read `tailwind.config.{js,ts,cjs,mjs}`** (incl. `theme.extend`) first to learn the configured `colors`, `spacing`, `fontSize`, `fontFamily`, `borderRadius` tokens.
+   - **Match a theme token when the value matches it** → use the semantic class (`text-primary`, `text-sm`, `rounded-lg`, `p-4`). Only fall back to **arbitrary values** when nothing matches: `text-[#ff6b8b]`, `text-[14px]`, `leading-[20px]`, `tracking-[0.5px]`, `rounded-[16px]`.
+   - **font-family — be careful.** Zeplin's `textStyle.fontFamily` is often a platform/system font (e.g. `PingFang`, `SF Pro`) with no meaning on the web. Only set/change font-family if that family is actually configured in `tailwind.config` `fontFamily` (or loaded as a web font in the project). Otherwise **leave the project's existing font-family alone** — don't hardcode the design's font name.
+   - Same principle for color/size: reuse the configured token if it matches; never invent a class name that isn't in the config.
+
 4. **Re-render and verify.** Re-navigate and re-screenshot (track these paths too). Compare against the reference image and tick off checklist items. Keep the browser open across iterations — don't close it between rounds.
 
 5. **Iterate** at most **3 rounds** (more only if the user asks). Stop when aligned or no longer improving.
