@@ -8,7 +8,7 @@
       "name": "kayne-skills",
       "source": "./",
       "description": "A collection of reusable Claude Code skills: headless web fetching and Zeplin design-to-code alignment",
-      "version": "1.3.0"
+      "version": "1.4.0"
     }
   ]
 }
