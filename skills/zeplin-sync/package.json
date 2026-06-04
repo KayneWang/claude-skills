@@ -1,0 +1,10 @@
+{
+  "name": "zeplin-sync",
+  "version": "1.0.0",
+  "description": "Read a Zeplin screen spec and align a component's code to it via a render/compare loop",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}
