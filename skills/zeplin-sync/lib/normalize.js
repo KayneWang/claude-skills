@@ -17,15 +17,19 @@ function normalizeFills(fills = [], tokenByHex) {
     });
 }
 
+// The Zeplin REST API returns snake_case fields. We read those and expose a
+// clean camelCase shape to the agent. line_height / letter_spacing are only
+// present when explicitly set in the design, so they default to null.
 function normalizeTextStyle(layer) {
-  const style = layer.textStyles?.[0]?.style;
+  const style = layer.text_styles?.[0]?.style;
   if (!style) return null;
   return {
-    fontFamily: style.fontFamily ?? null,
-    fontSize: style.fontSize ?? null,
-    fontWeight: style.fontWeight ?? null,
-    lineHeight: style.lineHeight ?? null,
-    letterSpacing: style.letterSpacing ?? null,
+    fontFamily: style.font_family ?? null,
+    fontSize: style.font_size ?? null,
+    fontWeight: style.font_weight ?? null,
+    lineHeight: style.line_height ?? null,
+    letterSpacing: style.letter_spacing ?? null,
+    textAlign: style.text_align ?? null,
     color: style.color ? rgbaToHex(style.color) : null,
   };
 }
@@ -44,7 +48,7 @@ export function normalize({ screen, version, colors = [] }) {
     type: l.type,
     name: l.name ?? null,
     rect: { x: l.rect?.x, y: l.rect?.y, width: l.rect?.width, height: l.rect?.height },
-    borderRadius: l.borderRadius ?? 0,
+    borderRadius: l.border_radius ?? 0,
     content: l.content ?? null,
     fills: normalizeFills(l.fills, tokenByHex),
     textStyle: normalizeTextStyle(l),

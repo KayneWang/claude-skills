@@ -28,7 +28,8 @@ async function main() {
   const colors = Array.isArray(colorsResp) ? colorsResp : colorsResp.colors ?? [];
   const spec = normalize({ screen, version, colors });
 
-  const imageUrl = screen.image?.originalUrl ?? screen.image?.original_url;
+  // REST API uses snake_case (original_url); keep camelCase as a defensive fallback.
+  const imageUrl = screen.image?.original_url ?? screen.image?.originalUrl;
   spec.referenceImage = imageUrl ? await downloadImage(imageUrl, screenId) : null;
 
   console.log(JSON.stringify(spec, null, 2));
