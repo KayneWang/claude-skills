@@ -4,29 +4,10 @@
 
 ## Skills
 
-### headless-web-fetch
-
-用 Playwright 的无头 Chromium 抓取 `WebFetch` 处理不了的 JS 渲染页面（X/Twitter、SPA、各类 dashboard）。
-
-**特性：**
-- 首次运行自动安装 Playwright + Chromium
-- 可配置滚动深度和等待时间，加载懒加载内容
-- 自定义 User-Agent，规避机器人检测
-
-### zeplin-sync
-
-把组件样式对齐到 Zeplin 设计稿。给定 Zeplin screen 链接和目标代码文件，它会读取设计规格、修改代码，并通过「渲染 → 截图 → 比对」闭环验证结果。
-
-**流程：** 抓取 Zeplin 规格 + 参考图（`zeplin.js`）→ 截图运行中的组件（Playwright MCP）→ 列出差异 → 修改代码 → 重新渲染比对 → 迭代（≤3 轮）→ 输出报告
-
-**对齐范围：** 视觉样式值（颜色、间距、字体、圆角）、布局结构、文案内容，以及**静态素材**（导出 + 页面级增量接入：未变跳过、变化原地替换、新增接入）。Tailwind 项目会优先复用 `tailwind.config` 里的 theme token。
-
-**素材增量更新：** 以组件源码引用为准识别本页在用素材，按内容 hash 比对 —— 一致则跳过，不同则原地覆盖，缺失则新增；映射有歧义时询问用户。
-
-**前置要求：**
-- `ZEPLIN_TOKEN` 环境变量（Zeplin 网页端 → Profile → Developer → Create new token）
-- 启用 Playwright MCP（用于截图）
-- 项目 dev server 已在运行，并提供组件的路由/URL
+| Skill | 一句话 | 文档 |
+|-------|--------|------|
+| **headless-web-fetch** | 用无头 Chromium 抓取 `WebFetch` 处理不了的 JS 渲染页面 | [详情](skills/headless-web-fetch/README.md) |
+| **zeplin-sync** | 把组件样式按 Zeplin 设计稿对齐，并通过「渲染 → 截图 → 比对」闭环验证 | [详情](skills/zeplin-sync/README.md) |
 
 ## 安装
 
@@ -38,16 +19,7 @@
 /plugin install kayne-skills
 ```
 
-## 使用
-
-```bash
-# 抓取 JS 渲染的页面内容
-/headless-web-fetch
-
-# 把组件对齐到 Zeplin 设计稿
-# 例如：“用 zeplin-sync 把 <组件> 对齐到 <Zeplin screen 链接>，路由是 <url>”
-/zeplin-sync
-```
+装好后直接用自然语言触发对应 skill，具体用法和前置配置见各 skill 的文档。
 
 ## License
 
