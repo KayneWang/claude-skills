@@ -1,4 +1,4 @@
-import { parseScreenUrl } from "./lib/parse-url.js";
+import { requireContext } from "./lib/cli.js";
 import { getScreen, getScreenVersion, downloadAsset } from "./lib/zeplin-api.js";
 import { pickBestContent } from "./lib/pick-content.js";
 import { hashFile } from "./lib/detect.js";
@@ -19,22 +19,7 @@ function uniqueName(base, ext, used) {
 }
 
 async function main() {
-  const url = process.argv[2];
-  if (!url) {
-    console.error("Usage: node assets.js <zeplin-screen-url>");
-    process.exit(2);
-  }
-  const token = process.env.ZEPLIN_TOKEN;
-  if (!token) {
-    console.error(
-      "ZEPLIN_TOKEN is not set.\n" +
-        "Create one at Zeplin web → Profile → Developer → Create new token, then:\n" +
-        "  export ZEPLIN_TOKEN=<your token>"
-    );
-    process.exit(2);
-  }
-
-  const { projectId, screenId, versionId } = parseScreenUrl(url);
+  const { token, projectId, screenId, versionId } = requireContext("assets.js");
   const [screen, version] = await Promise.all([
     getScreen(token, projectId, screenId),
     getScreenVersion(token, projectId, screenId, versionId),

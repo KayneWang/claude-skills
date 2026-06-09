@@ -14,3 +14,7 @@ test("partial alpha → #rrggbbaa", () => {
 test("rounds fractional channels", () => {
   assert.equal(rgbaToHex({ r: 254.6, g: 0.4, b: 127.5, a: 1 }), "#ff0080");
 });
+test("missing channels are treated as 0, never NaN", () => {
+  assert.equal(rgbaToHex({ r: 255, a: 1 }), "#ff0000");
+  assert.equal(rgbaToHex(), "#000000");
+});
