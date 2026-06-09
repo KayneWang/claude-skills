@@ -62,7 +62,7 @@ Align a single component/page's code to one Zeplin screen, verified by rendering
 
 ## Scope
 
-In scope: visual style values, layout structure, copy, and static assets (export + page-scoped incremental wiring: skip unchanged, replace changed in place, add new). **Out of scope:** automatic asset↔code mapping heuristics and multi-density `srcset` — for ambiguous mappings, ask the user.
+In scope: visual style values, layout structure, copy, and static assets (export + page-scoped incremental wiring: skip unchanged, replace changed in place, add new). **Out of scope:** automatic asset↔code mapping heuristics and multi-density `srcset` — for ambiguous mappings, ask the user. **Only solid-color fills are normalized** — gradient and image fills are not in `layers[].fills`; eyeball those from the `referenceImage`.
 
 ## Errors
 
