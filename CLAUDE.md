@@ -9,7 +9,8 @@ A Claude Code plugin (`kayne-skills`) that packages reusable skills for team sha
 ## Architecture
 
 ```
-.claude-plugin/plugin.json   # Plugin manifest — registers skills by path
+.claude-plugin/plugin.json       # Plugin manifest — registers skills by path
+.claude-plugin/marketplace.json  # Marketplace entry — carries its own version
 skills/
   <skill-name>/
     SKILL.md                  # Skill definition (frontmatter: name, description, trigger conditions)
@@ -28,6 +29,15 @@ Each skill is a directory under `skills/` containing a `SKILL.md` with YAML fron
 1. Create `skills/<skill-name>/SKILL.md` with frontmatter and instructions
 2. Skills are auto-discovered by directory — no manifest edit needed (`.claude-plugin/plugin.json` has no `skills` array)
 3. If the skill needs runtime code, add it alongside SKILL.md with its own `package.json`
+
+## Versioning
+
+The plugin version is duplicated in **two** files and they must be bumped together in the same commit:
+
+- `.claude-plugin/plugin.json` → `version`
+- `.claude-plugin/marketplace.json` → `plugins[0].version`
+
+Use a patch bump for bugfix/robustness rounds (e.g. `1.4.0` → `1.4.1`). A skill's own `skills/<name>/package.json` version is independent — it's not part of the plugin release bump.
 
 ## Local Development Setup (how these skills are mounted on this machine)
 
