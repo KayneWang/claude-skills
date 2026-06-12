@@ -19,6 +19,7 @@ Align a single component/page's code to one Zeplin screen, verified by rendering
 - A Zeplin **screen URL** (required).
 - The **route/URL** where the component renders on the running dev server (required).
 - The **target code file** (optional — locate it if omitted).
+- The **design scale factor** (optional — e.g. "设计稿是 2 倍图" / "the mockup is 2x" / "1x"). When given, use it as-is for all px conversion; only infer it yourself (step 1 heuristic) when the user didn't specify.
 
 ## Procedure
 
@@ -27,13 +28,25 @@ Align a single component/page's code to one Zeplin screen, verified by rendering
    Parse the printed JSON: `screen`, `tokens`, `annotations`, `layers`, `referenceImage`. Each layer may also carry `componentName` (marks a reusable component instance — prefer the existing codebase component over restyling), `shadows`, `borders`, per-range `textStyles`, and `sourceId`.
    Read `referenceImage` with the Read tool so you can see the design.
 
-2. **Establish the baseline.** Use the Playwright MCP to navigate to the route (`browser_navigate`) and screenshot it (`browser_take_screenshot`). **Keep track of the file path each screenshot is saved to** (the tool reports it) — you'll delete them in the cleanup step. Read the screenshot. Compare it to the reference image and the spec, and write a TodoWrite checklist of every discrepancy across three categories:
+   **How to read the spec — coordinates and scale:**
+   - `layers[].rect.x/y` are **relative to the parent layer**; `rect.absolute.x/y` is the position **within the screen**. For layout work (positions, alignment, column widths) use `absolute`; use relative x/y only for offsets inside a known parent (e.g. text inset within a card).
+   - All values (rects, font sizes) are in the design's coordinate space: `screen.width` × `screen.height`. **Before writing any CSS value, decide the scale factor.** If the user specified one (see Inputs), use it — don't second-guess it. Otherwise infer by matching `screen.width` against mainstream **1x logical viewport widths** (CSS px):
+     - mobile: 320, 360, 375, 390, 393, 412, 414, 428, 430 · tablet: 768, 810, 820, 834, 1024 · desktop: 1280, 1366, 1440, 1536, 1600, 1728, 1920
+     - `screen.width` itself matches (±2px) → **1x**. `screen.width ÷ 2` matches → **2x** (750→375, 2560→1280, 2880→1440). `screen.width ÷ 3` matches → **3x** (1125→375, 1179→393, 1290→430).
+     - Multiple interpretations match (e.g. 1536 = 1x desktop or 2x tablet), or none do → tie-break with `screen.densityScale` and a text sanity check: pick the factor that lands body text in the 14–18px range; if still ambiguous, state the candidates and ask the user.
+     Apply the factor to **every** px value (a 40px font in a 2x design is 20px CSS).
+   - `layers[].shadows` map by layer type: on a `text` layer → CSS `text-shadow`; on shape/group layers → `box-shadow` (`type: "inner"` → `inset`). Don't drop text shadows — overlay titles usually depend on them for contrast.
+   - `layers[].fills` may contain gradients (`{ gradient: { type, stops } }`) — render them as CSS gradients (e.g. card scrims behind overlay text). The stop order runs along the gradient axis; infer the direction from the `referenceImage`.
+
+2. **Establish the baseline.** Use the Playwright MCP to navigate to the route (`browser_navigate`) and **size the viewport for a like-for-like comparison** (`browser_resize`): set the viewport width to the design's logical width (`screen.width` ÷ the scale factor from step 1, e.g. 2560 → 1280) so screenshots and the reference image are at the same scale — otherwise font-size and spacing errors are invisible in the comparison. Then screenshot (`browser_take_screenshot`). **Keep track of the file path each screenshot is saved to** (the tool reports it) — you'll delete them in the cleanup step. Read the screenshot. Compare it to the reference image and the spec, and write a TodoWrite checklist of every discrepancy across three categories:
    - **Visual style values** — colors, padding/margin, font size/weight/line-height, border-radius, borders, shadows (use exact values from `layers[].fills/textStyles/borders/shadows/rect/borderRadius`).
    - **Layout structure** — flex/grid arrangement, alignment, order.
    - **Copy** — text content (from `layers[].content`).
    - **Implementation hints** — if `annotations[]` is non-empty, read each `annotation.content` for designer notes on behavior/spacing/component reuse and fold them into the checklist.
 
-3. **Edit the code.** First detect the project's styling convention (Tailwind / CSS Modules / styled-components / plain CSS) by reading the target file and its neighbors. Apply changes using the spec's exact values, and **prefer existing design tokens/variables** in the codebase (and the `tokens.colors` names from the spec) over hardcoded values.
+3. **Edit the code.** First detect the project's styling convention (Tailwind / CSS Modules / styled-components / plain CSS) by reading the target file and its neighbors. Apply changes using the spec's exact values (scaled per step 1), and **prefer existing design tokens/variables** in the codebase (and the `tokens.colors` names from the spec) over hardcoded values.
+
+   **Building from scratch (route is empty / no existing component):** don't free-hand the layout from the reference image. First derive a **layout skeleton** from the `rect.absolute` of the shallow (depth 0–2) group layers: the content column width and centering (e.g. groups at x=580, width=1400 in a 2560 screen → a 54.7%-wide centered container), the vertical order of sections, and which layers overlap (overlay text/scrims on images). Write that skeleton as containers first, then fill each section's styles and copy from its child layers.
 
    **If the project uses Tailwind**, express the design values the Tailwind way — don't just inline raw CSS:
    - **Read `tailwind.config.{js,ts,cjs,mjs}`** (incl. `theme.extend`) first to learn the configured `colors`, `spacing`, `fontSize`, `fontFamily`, `borderRadius` tokens.
@@ -62,7 +75,7 @@ Align a single component/page's code to one Zeplin screen, verified by rendering
 
 ## Scope
 
-In scope: visual style values, layout structure, copy, and static assets (export + page-scoped incremental wiring: skip unchanged, replace changed in place, add new). **Out of scope:** automatic asset↔code mapping heuristics and multi-density `srcset` — for ambiguous mappings, ask the user. **Only solid-color fills are normalized** — gradient and image fills are not in `layers[].fills`; eyeball those from the `referenceImage`.
+In scope: visual style values, layout structure, copy, and static assets (export + page-scoped incremental wiring: skip unchanged, replace changed in place, add new). **Out of scope:** automatic asset↔code mapping heuristics and multi-density `srcset` — for ambiguous mappings, ask the user. **Solid-color and gradient fills are normalized** — image fills are not in `layers[].fills`; eyeball those from the `referenceImage`.
 
 ## Errors
 

@@ -10,13 +10,27 @@ export function flattenLayers(layers = [], depth = 0, acc = []) {
   return acc;
 }
 
+// Solid fills become { hex, token }; gradient fills keep their stops as
+// { gradient: { type, stops } }. Image fills carry no color data — skipped.
 function normalizeFills(fills = [], tokenByHex) {
-  return fills
-    .filter((f) => f.type === "color" && f.color)
-    .map((f) => {
+  const out = [];
+  for (const f of fills) {
+    if (f.type === "color" && f.color) {
       const hex = rgbaToHex(f.color);
-      return { hex, token: tokenByHex.get(hex) ?? null };
-    });
+      out.push({ hex, token: tokenByHex.get(hex) ?? null });
+    } else if (f.type === "gradient" && f.gradient) {
+      out.push({
+        gradient: {
+          type: f.gradient.type ?? null,
+          stops: (f.gradient.color_stops ?? []).map((s) => ({
+            position: s.position ?? null,
+            color: s.color ? rgbaToHex(s.color) : null,
+          })),
+        },
+      });
+    }
+  }
+  return out;
 }
 
 // Per-range text styles. The REST API returns snake_case; we expose camelCase.
@@ -46,6 +60,7 @@ function normalizeBorders(borders = []) {
 
 function normalizeShadows(shadows = []) {
   return shadows.map((s) => ({
+    type: s.type ?? null,
     offsetX: s.offset_x ?? null,
     offsetY: s.offset_y ?? null,
     blur: s.blur_radius ?? null,
@@ -81,7 +96,13 @@ export function normalize({ screen, version, colors = [], annotations = [] }) {
       type: l.type,
       name: l.name ?? null,
       depth,
-      rect: { x: l.rect?.x, y: l.rect?.y, width: l.rect?.width, height: l.rect?.height },
+      // rect x/y are relative to the parent layer; rect.absolute (when the API
+      // provides it) is the position within the screen — keep both, since the
+      // flat output has no parent linkage to re-derive absolute positions from.
+      rect: {
+        x: l.rect?.x, y: l.rect?.y, width: l.rect?.width, height: l.rect?.height,
+        ...(l.rect?.absolute ? { absolute: { x: l.rect.absolute.x, y: l.rect.absolute.y } } : {}),
+      },
       borderRadius: l.border_radius ?? 0,
       content: l.content ?? null,
       fills: normalizeFills(l.fills, tokenByHex),
@@ -100,7 +121,12 @@ export function normalize({ screen, version, colors = [], annotations = [] }) {
   });
 
   return {
-    screen: { name: screen.name, width: screen.image?.width, height: screen.image?.height },
+    screen: {
+      name: screen.name,
+      width: screen.image?.width,
+      height: screen.image?.height,
+      densityScale: version.density_scale ?? null,
+    },
     tokens: { colors: tokenColors },
     annotations: normalizeAnnotations(annotations),
     layers,
