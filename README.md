@@ -21,6 +21,10 @@
 
 装好后直接用自然语言触发对应 skill，具体用法和前置配置见各 skill 的文档。
 
+## 在 Codex 里用
+
+Codex 原生支持 `SKILL.md`（开放 agent skills 标准），本仓库的 skill 直接兼容——把 skill 目录 symlink 进 Codex 的 skills 目录即可，和 `~/.claude/skills` 一个套路。详见 [codex/](codex/README.md)。
+
 ## License
 
 MIT
