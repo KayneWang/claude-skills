@@ -1,0 +1,10 @@
+{
+  "name": "gitlab-issue-dev",
+  "version": "1.0.0",
+  "description": "Fetch GitLab issues assigned to the user and drive an issue → branch → develop → Draft MR workflow",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "test": "node --test"
+  }
+}
