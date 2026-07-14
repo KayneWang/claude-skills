@@ -1,6 +1,6 @@
 {
   "name": "kayne-skills",
-  "version": "1.4.2",
+  "version": "1.5.0",
   "description": "A collection of reusable Claude Code skills: headless web fetching and Zeplin design-to-code alignment",
   "author": {
     "name": "KayneWang"
