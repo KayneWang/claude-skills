@@ -8,6 +8,7 @@
 |-------|--------|------|
 | **headless-web-fetch** | 用无头 Chromium 抓取 `WebFetch` 处理不了的 JS 渲染页面 | [详情](skills/headless-web-fetch/README.md) |
 | **zeplin-sync** | 把组件样式按 Zeplin 设计稿对齐，并通过「渲染 → 截图 → 比对」闭环验证 | [详情](skills/zeplin-sync/README.md) |
+| **gitlab-issue-dev** | 领取分配给你的 GitLab issue，走「确认方案 → 开分支 → 开发 → Draft MR」闭环 | [详情](skills/gitlab-issue-dev/README.md) |
 
 ## 安装
 

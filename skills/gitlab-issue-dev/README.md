@@ -9,10 +9,12 @@ Claude Code skill: pick a GitLab issue assigned to you and drive it to a Draft M
 
 ## CLI
 
+Run from the target GitLab repo (`<skill-dir>` = this directory, e.g. `~/.claude/skills/gitlab-issue-dev`):
+
 ```
-node gitlab.js issues                     # open issues assigned to you (JSON)
-node gitlab.js issue <iid>                # full issue: description, comments, related MRs
-node gitlab.js mr <branch> --issue <iid> --title <t> --description <d>   # create Draft MR
+node <skill-dir>/gitlab.js issues                     # open issues assigned to you (JSON)
+node <skill-dir>/gitlab.js issue <iid>                # full issue: description, comments, related MRs
+node <skill-dir>/gitlab.js mr <branch> --issue <iid> --title <t> --description <d>   # create Draft MR
 ```
 
 Requires Node 18+. No npm dependencies. Tests: `npm test`.
