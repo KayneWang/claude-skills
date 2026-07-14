@@ -32,7 +32,7 @@ Drive one GitLab issue from selection to a Draft merge request: list the user's 
    ```
    - `<type>`: `fix` if the issue labels contain a bug-like label (`bug`, `fix`, `defect`, `hotfix` — case-insensitive), else `feature`.
    - `<slug>`: an English kebab-case phrase from the issue title, ≤5 words (translate non-English titles; e.g. "登录页新增记住我" → `login-remember-me`).
-   - `<default-branch>`: from `git remote show origin` or the earlier `mr` metadata; when in doubt use the branch `origin/HEAD` points to.
+   - `<default-branch>`: from `git remote show origin`; when in doubt use the branch `origin/HEAD` points to.
    - If the branch name already exists locally or remotely, ask the user: reuse it or pick a new name.
 
 5. **Develop.** Implement the approved plan following the normal development workflow (write tests first where the project has a test setup; run the project's tests and linter). Stay scoped to the issue — don't fix unrelated things.
@@ -50,7 +50,7 @@ Drive one GitLab issue from selection to a Draft merge request: list the user's 
 
 - `401` → token invalid/expired; regenerate the PAT (`api` scope).
 - Empty `issues` output → nothing assigned to the user; stop.
-- Remote isn't GitLab / can't be parsed → stop and suggest `GITLAB_HOST` + `GITLAB_PROJECT`.
+- Remote host is a known non-GitLab host (e.g. GitHub) → rejected outright with an error; an unrecognized but wrong host instead surfaces as a GitLab API 404. Either way, stop and suggest `GITLAB_HOST` + `GITLAB_PROJECT`.
 - MR creation `409` (an open MR already exists for the branch) → surface the API message and the existing MR link; don't retry.
 - Branch already exists → ask the user (reuse vs rename); never force-delete.
 

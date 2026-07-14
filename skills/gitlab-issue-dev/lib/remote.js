@@ -15,6 +15,15 @@ export function parseRemote(url) {
   return null;
 }
 
+// Hosts that are never GitLab instances. Matched exactly or as a subdomain
+// (e.g. "www.github.com") so we never send a GitLab PAT to them.
+const NON_GITLAB_HOSTS = ["github.com", "bitbucket.org", "dev.azure.com", "codeberg.org"];
+
+function isNonGitlabHost(host) {
+  const bare = host.split(":")[0].toLowerCase();
+  return NON_GITLAB_HOSTS.some((blocked) => bare === blocked || bare.endsWith(`.${blocked}`));
+}
+
 export function resolveContext({ env = process.env, remoteUrl } = {}) {
   const token = env.GITLAB_TOKEN;
   if (!token) {
@@ -28,6 +37,11 @@ export function resolveContext({ env = process.env, remoteUrl } = {}) {
   if (!host || !projectPath) {
     throw new Error(
       `Cannot resolve a GitLab project from remote "${remoteUrl ?? "(none)"}". Set GITLAB_HOST and GITLAB_PROJECT to override.`
+    );
+  }
+  if (isNonGitlabHost(host)) {
+    throw new Error(
+      `Remote host "${host}" is not a GitLab host. Set GITLAB_HOST and GITLAB_PROJECT to point at your GitLab instance.`
     );
   }
   return { token, host, projectPath };
