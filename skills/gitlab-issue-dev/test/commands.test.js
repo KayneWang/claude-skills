@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { listMyIssues, getIssue } from "../lib/commands.js";
+import { listMyIssues, getIssue, buildMrPayload, createMr } from "../lib/commands.js";
 
 // Fake client: route → canned response, records requested paths.
 function fakeClient(routes) {
@@ -52,4 +52,36 @@ test("getIssue merges detail, non-system notes, and related MRs", async () => {
   assert.deepEqual(out.comments, [{ author: "pm", body: "please also handle X" }]);
   assert.deepEqual(out.relatedMrs, [{ iid: 9, title: "old attempt", state: "closed", web_url: "https://gl/mr/9" }]);
   assert.equal(out.labels[0], "bug");
+});
+
+test("buildMrPayload adds Draft prefix and Closes footer", () => {
+  const p = buildMrPayload({
+    sourceBranch: "feature/5-x", targetBranch: "main", issueIid: 5, title: "Add login", description: "Body",
+  });
+  assert.deepEqual(p, {
+    source_branch: "feature/5-x",
+    target_branch: "main",
+    title: "Draft: Add login",
+    description: "Body\n\nCloses #5",
+  });
+});
+
+test("buildMrPayload does not double an existing Draft prefix", () => {
+  const p = buildMrPayload({
+    sourceBranch: "b", targetBranch: "main", issueIid: 5, title: "Draft: Add login", description: "d",
+  });
+  assert.equal(p.title, "Draft: Add login");
+});
+
+test("createMr targets the project default branch", async () => {
+  const client = fakeClient({
+    "/projects/g%2Fr": { default_branch: "develop" },
+    "/projects/g%2Fr/merge_requests": {
+      iid: 11, title: "Draft: T", web_url: "https://gl/mr/11", target_branch: "develop",
+    },
+  });
+  const out = await createMr(client, "g/r", {
+    sourceBranch: "feature/5-x", issueIid: 5, title: "T", description: "d",
+  });
+  assert.deepEqual(out, { iid: 11, title: "Draft: T", web_url: "https://gl/mr/11", target_branch: "develop" });
 });
