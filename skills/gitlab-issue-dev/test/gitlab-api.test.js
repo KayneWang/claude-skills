@@ -11,7 +11,10 @@ function stubFetch(responses) {
     return {
       ok: r.status >= 200 && r.status < 300,
       status: r.status,
-      text: async () => (r.body === undefined ? "" : JSON.stringify(r.body)),
+      text: async () => {
+        if (r.rawBody !== undefined) return r.rawBody;
+        return r.body === undefined ? "" : JSON.stringify(r.body);
+      },
       headers: { get: (k) => r.headers?.[k.toLowerCase()] ?? null },
     };
   };
@@ -58,4 +61,10 @@ test("other errors surface status and API message", async () => {
   const f = stubFetch([{ status: 409, body: { message: ["Another open merge request already exists"] } }]);
   const client = createClient({ host: "h.com", token: "t", fetchImpl: f });
   await assert.rejects(() => client.post("/x", {}), /409.*Another open merge request/);
+});
+
+test("non-JSON error bodies (e.g., HTML from proxy 502) are tolerated", async () => {
+  const f = stubFetch([{ status: 502, rawBody: "<html>Bad Gateway</html>" }]);
+  const client = createClient({ host: "h.com", token: "t", fetchImpl: f });
+  await assert.rejects(() => client.get("/x"), /GitLab API 502.*Bad Gateway/);
 });

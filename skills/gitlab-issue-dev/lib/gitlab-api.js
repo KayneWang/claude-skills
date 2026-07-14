@@ -10,7 +10,12 @@ export function createClient({ host, token, fetchImpl = fetch }) {
       body: body === undefined ? undefined : JSON.stringify(body),
     });
     const text = await res.text();
-    const data = text ? JSON.parse(text) : null;
+    let data = null;
+    try {
+      data = text ? JSON.parse(text) : null;
+    } catch {
+      // non-JSON body (e.g., HTML error page from proxy)
+    }
     if (!res.ok) {
       if (res.status === 401) {
         throw new Error(
