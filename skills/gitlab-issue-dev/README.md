@@ -17,7 +17,7 @@
 
 在 GitLab 生成：`Preferences → Access Tokens` → 勾选 **`api`** scope → Create → **立刻复制保存**。
 
-把 token 设到环境变量 `GITLAB_TOKEN`，最可靠的方式是写进 shell 配置文件：
+把 token 设到环境变量 `GITLAB_TOKEN`，写进 shell 配置文件即可**全局生效** —— 一次配置，对该 GitLab 上你有权限的所有项目通用，无需每个项目单独配：
 
 ```bash
 echo 'export GITLAB_TOKEN=<你的token>' >> ~/.zshrc   # 或 ~/.bashrc
@@ -26,9 +26,9 @@ echo 'export GITLAB_TOKEN=<你的token>' >> ~/.zshrc   # 或 ~/.bashrc
 
 > ⚠️ 不要把 token 写进任何会提交到 git 的文件。
 
-### 2. GitLab 项目仓库（必需）
+### 2. 在目标项目仓库里运行
 
-在**目标项目**目录里使用 —— 该仓库的 `origin` remote 需指向 GitLab 项目（自建 GitLab 也行，host 从 remote 地址自动解析）。remote 解析不了或不标准时，可用环境变量覆盖：
+这不是配置项，而是使用方式：完整流程要开分支、push、建 MR，所以需要在**目标项目**的 clone 目录里使用。GitLab host 和项目路径默认从该仓库的 `origin` remote 自动解析（自建 GitLab 也行），无需任何配置；只有 remote 解析不了或不标准时，才需要用环境变量覆盖：
 
 ```bash
 export GITLAB_HOST=gitlab.mycorp.com
