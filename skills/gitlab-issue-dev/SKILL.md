@@ -10,7 +10,7 @@ Drive one GitLab issue from selection to a Draft merge request: list the user's 
 ## Prerequisites (check first, stop if missing)
 
 1. `GITLAB_TOKEN` is set (personal access token, `api` scope). If not: tell the user to create one at GitLab → Preferences → Access Tokens, then `export GITLAB_TOKEN=<token>`.
-2. The current directory is a git repository whose `origin` remote is a GitLab project. Self-hosted GitLab works — the host is parsed from the remote URL. If the remote can't be parsed, the user can override with `GITLAB_HOST` (e.g. `gitlab.mycorp.com`) and `GITLAB_PROJECT` (e.g. `team/app`).
+2. The current directory is a git repository whose `origin` remote is a GitLab project. Self-hosted GitLab works — the host (and http vs https) is parsed from the remote URL. If the remote can't be parsed, the user can override with `GITLAB_HOST` (e.g. `gitlab.mycorp.com`, or `http://gitlab.internal` for an http-only instance) and `GITLAB_PROJECT` (the raw path like `team/app` — not URL-encoded).
 3. The working tree is clean. If not, ask the user how to proceed (stash / commit first / abort) — never silently discard changes.
 
 ## Procedure
@@ -21,7 +21,7 @@ Drive one GitLab issue from selection to a Draft merge request: list the user's 
 
 2. **Fetch the full issue.** Run:
    `node <skill-dir>/gitlab.js issue <iid>`
-   Read `description`, `labels`, `comments` (discussion often carries extra requirements — treat them as part of the spec), and `relatedMrs` (if an open related MR exists, flag it to the user before continuing — someone may already be working on this).
+   Read `description`, `labels`, `comments` (discussion often carries extra requirements — treat them as part of the spec), `relatedMrs` (if an open related MR exists, flag it to the user before continuing — someone may already be working on this), and `default_branch` (used in step 4).
 
 3. **Confirm the plan (gate 1 — do not write code before this).** Digest the issue into an implementation plan: which files to touch, the approach, and acceptance criteria derived from the issue text. Present it to the user and get explicit approval. Adjust until approved.
 
@@ -32,7 +32,7 @@ Drive one GitLab issue from selection to a Draft merge request: list the user's 
    ```
    - `<type>`: `fix` if the issue labels contain a bug-like label (`bug`, `fix`, `defect`, `hotfix` — case-insensitive), else `feature`.
    - `<slug>`: an English kebab-case phrase from the issue title, ≤5 words (translate non-English titles; e.g. "登录页新增记住我" → `login-remember-me`).
-   - `<default-branch>`: from `git remote show origin`; when in doubt use the branch `origin/HEAD` points to.
+   - `<default-branch>`: the `default_branch` field from step 2's output (authoritative, from the GitLab API).
    - If the branch name already exists locally or remotely, ask the user: reuse it or pick a new name.
 
 5. **Develop.** Implement the approved plan following the normal development workflow (write tests first where the project has a test setup; run the project's tests and linter). Stay scoped to the issue — don't fix unrelated things.

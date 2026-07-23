@@ -31,8 +31,8 @@ echo 'export GITLAB_TOKEN=<你的token>' >> ~/.zshrc   # 或 ~/.bashrc
 这不是配置项，而是使用方式：完整流程要开分支、push、建 MR，所以需要在**目标项目**的 clone 目录里使用。GitLab host 和项目路径默认从该仓库的 `origin` remote 自动解析（自建 GitLab 也行），无需任何配置；只有 remote 解析不了或不标准时，才需要用环境变量覆盖：
 
 ```bash
-export GITLAB_HOST=gitlab.mycorp.com
-export GITLAB_PROJECT=team/app
+export GITLAB_HOST=gitlab.mycorp.com     # 纯 http 的内网实例可写 http://gitlab.internal
+export GITLAB_PROJECT=team/app           # 原始路径，不要写成 team%2Fapp
 ```
 
 known 的非 GitLab host（github.com 等）会被直接拒绝，防止 token 发错地方。
@@ -71,6 +71,7 @@ Node 18+，零 npm 依赖。测试：`npm test`。
 ## 常见问题
 
 - **401** → token 无效或过期，重新生成（`api` scope）并更新 `GITLAB_TOKEN`。
+- **Request to … failed（ENOTFOUND / ECONNREFUSED 等）** → host 拼错、内网不通或协议不对，检查 `GITLAB_HOST`（http 实例需带 `http://` 前缀）。
 - **issue 列表为空** → 当前项目没有分配给你的 open issue（按 token 所有者过滤）。
 - **提示 "not a GitLab host"** → 当前仓库 origin 指向 GitHub 等非 GitLab 平台，用 `GITLAB_HOST` + `GITLAB_PROJECT` 指定目标项目。
 - **建 MR 报 409** → 该分支已有 open MR，agent 会给出已存在 MR 的链接，不会重复创建。

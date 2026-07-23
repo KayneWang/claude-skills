@@ -14,22 +14,27 @@ function originUrl() {
 
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
-  const { token, host, projectPath } = resolveContext({ remoteUrl: originUrl() });
-  const client = createClient({ host, token });
+  // Validate the command (and its args) before touching token/remote context,
+  // so `gitlab.js` / `gitlab.js --help` print usage instead of a setup error.
+  if (!["issues", "issue", "mr"].includes(cmd)) {
+    throw new Error(
+      "Usage: gitlab.js <command>\n  issues\n  issue <iid>\n  mr <source-branch> --issue <iid> --title <t> --description <d>"
+    );
+  }
+  const iid = cmd === "issue" ? Number(rest[0]) : null;
+  if (cmd === "issue" && !iid) throw new Error("Usage: gitlab.js issue <iid>");
+  const mrArgs = cmd === "mr" ? parseMrArgs(rest) : null;
+
+  const { token, protocol, host, projectPath } = resolveContext({ remoteUrl: originUrl() });
+  const client = createClient({ host, token, protocol });
 
   let result;
   if (cmd === "issues") {
     result = await listMyIssues(client, projectPath);
   } else if (cmd === "issue") {
-    const iid = Number(rest[0]);
-    if (!iid) throw new Error("Usage: gitlab.js issue <iid>");
     result = await getIssue(client, projectPath, iid);
-  } else if (cmd === "mr") {
-    result = await createMr(client, projectPath, parseMrArgs(rest));
   } else {
-    throw new Error(
-      "Usage: gitlab.js <command>\n  issues\n  issue <iid>\n  mr <source-branch> --issue <iid> --title <t> --description <d>"
-    );
+    result = await createMr(client, projectPath, mrArgs);
   }
   console.log(JSON.stringify(result, null, 2));
 }

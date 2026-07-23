@@ -31,6 +31,13 @@ test("get builds v4 url with PRIVATE-TOKEN header and params", async () => {
   assert.equal(f.calls[0].init.headers["PRIVATE-TOKEN"], "tok");
 });
 
+test("protocol option switches the base url to http", async () => {
+  const f = stubFetch([{ status: 200, body: { id: 1 } }]);
+  const client = createClient({ host: "gitlab.internal", token: "t", protocol: "http", fetchImpl: f });
+  await client.get("/user");
+  assert.equal(f.calls[0].url, "http://gitlab.internal/api/v4/user");
+});
+
 test("post sends JSON body", async () => {
   const f = stubFetch([{ status: 201, body: { iid: 1 } }]);
   const client = createClient({ host: "h.com", token: "t", fetchImpl: f });
@@ -61,6 +68,39 @@ test("other errors surface status and API message", async () => {
   const f = stubFetch([{ status: 409, body: { message: ["Another open merge request already exists"] } }]);
   const client = createClient({ host: "h.com", token: "t", fetchImpl: f });
   await assert.rejects(() => client.post("/x", {}), /409.*Another open merge request/);
+});
+
+test("network failures surface the underlying cause, not just 'fetch failed'", async () => {
+  const f = async () => {
+    throw new Error("fetch failed", {
+      cause: Object.assign(new Error("getaddrinfo ENOTFOUND gl.corp.com"), { code: "ENOTFOUND" }),
+    });
+  };
+  const client = createClient({ host: "gl.corp.com", token: "t", fetchImpl: f });
+  await assert.rejects(
+    () => client.get("/user"),
+    /gl\.corp\.com.*getaddrinfo ENOTFOUND gl\.corp\.com/s
+  );
+});
+
+test("429 retries once after Retry-After, then succeeds", async () => {
+  const f = stubFetch([
+    { status: 429, body: { message: "Too Many Requests" }, headers: { "retry-after": "0" } },
+    { status: 200, body: { id: 1 } },
+  ]);
+  const client = createClient({ host: "h.com", token: "t", fetchImpl: f });
+  assert.deepEqual(await client.get("/user"), { id: 1 });
+  assert.equal(f.calls.length, 2);
+});
+
+test("429 twice in a row gives up with the API error", async () => {
+  const f = stubFetch([
+    { status: 429, body: { message: "Too Many Requests" }, headers: { "retry-after": "0" } },
+    { status: 429, body: { message: "Too Many Requests" }, headers: { "retry-after": "0" } },
+  ]);
+  const client = createClient({ host: "h.com", token: "t", fetchImpl: f });
+  await assert.rejects(() => client.get("/user"), /429/);
+  assert.equal(f.calls.length, 2);
 });
 
 test("non-JSON error bodies (e.g., HTML from proxy 502) are tolerated", async () => {

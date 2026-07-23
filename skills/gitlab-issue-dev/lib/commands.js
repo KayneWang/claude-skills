@@ -1,9 +1,8 @@
 const proj = (p) => `/projects/${encodeURIComponent(p)}`;
 
 export async function listMyIssues(client, projectPath) {
-  const me = await client.get("/user");
   const issues = await client.getAll(`${proj(projectPath)}/issues`, {
-    assignee_id: me.id,
+    scope: "assigned_to_me",
     state: "opened",
   });
   return issues.map((i) => ({
@@ -17,10 +16,11 @@ export async function listMyIssues(client, projectPath) {
 
 export async function getIssue(client, projectPath, iid) {
   const p = proj(projectPath);
-  const [issue, notes, relatedMrs] = await Promise.all([
+  const [project, issue, notes, relatedMrs] = await Promise.all([
+    client.get(p),
     client.get(`${p}/issues/${iid}`),
     client.getAll(`${p}/issues/${iid}/notes`, { sort: "asc" }),
-    client.get(`${p}/issues/${iid}/related_merge_requests`),
+    client.getAll(`${p}/issues/${iid}/related_merge_requests`),
   ]);
   return {
     iid: issue.iid,
@@ -28,6 +28,7 @@ export async function getIssue(client, projectPath, iid) {
     description: issue.description,
     labels: issue.labels,
     web_url: issue.web_url,
+    default_branch: project.default_branch,
     comments: notes
       .filter((n) => !n.system)
       .map((n) => ({ author: n.author?.username, body: n.body })),

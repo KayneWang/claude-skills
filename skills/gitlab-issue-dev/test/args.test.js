@@ -23,3 +23,17 @@ test("rejects unknown flags and dangling values", () => {
   assert.throws(() => parseMrArgs(["b", "--nope", "x"]), /Unknown flag/);
   assert.throws(() => parseMrArgs(["b", "--issue"]), /Missing value/);
 });
+
+test("rejects a repeated flag instead of silently overwriting", () => {
+  assert.throws(
+    () => parseMrArgs(["b", "--issue", "5", "--issue", "6", "--title", "t", "--description", "d"]),
+    /Duplicate flag: --issue/
+  );
+});
+
+test("rejects a non-integer --issue", () => {
+  assert.throws(
+    () => parseMrArgs(["b", "--issue", "5.5", "--title", "t", "--description", "d"]),
+    /--issue/
+  );
+});

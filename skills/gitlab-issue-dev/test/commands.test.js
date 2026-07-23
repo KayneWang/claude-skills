@@ -2,31 +2,37 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import { listMyIssues, getIssue, buildMrPayload, createMr } from "../lib/commands.js";
 
-// Fake client: route → canned response, records requested paths.
+// Fake client: route → canned response, records {method, path, params}.
 function fakeClient(routes) {
   const seen = [];
-  const lookup = (path) => {
-    seen.push(path);
+  const lookup = (method, path, params) => {
+    seen.push({ method, path, params });
     if (!(path in routes)) throw new Error(`unexpected path: ${path}`);
     return routes[path];
   };
   return {
     seen,
-    get: async (path, params) => lookup(path, params),
-    getAll: async (path, params) => lookup(path, params),
-    post: async (path, body) => lookup(path, body),
+    get: async (path, params) => lookup("get", path, params),
+    getAll: async (path, params) => lookup("getAll", path, params),
+    post: async (path, body) => lookup("post", path, body),
   };
 }
 
-test("listMyIssues filters by the token owner's id and trims descriptions", async () => {
+test("listMyIssues asks for assigned_to_me scope without a /user roundtrip", async () => {
   const client = fakeClient({
-    "/user": { id: 42 },
     "/projects/group%2Frepo/issues": [
       { iid: 5, title: "Add login", labels: ["feature"], description: "x".repeat(300), web_url: "https://gl/5" },
       { iid: 6, title: "No description", labels: [], description: null, web_url: "https://gl/6" },
     ],
   });
   const out = await listMyIssues(client, "group/repo");
+  assert.deepEqual(client.seen, [
+    {
+      method: "getAll",
+      path: "/projects/group%2Frepo/issues",
+      params: { scope: "assigned_to_me", state: "opened" },
+    },
+  ]);
   assert.equal(out.length, 2);
   assert.equal(out[0].summary.length, 200);
   assert.equal(out[1].summary, "");
@@ -37,6 +43,7 @@ test("listMyIssues filters by the token owner's id and trims descriptions", asyn
 
 test("getIssue merges detail, non-system notes, and related MRs", async () => {
   const client = fakeClient({
+    "/projects/g%2Fr": { default_branch: "develop" },
     "/projects/g%2Fr/issues/5": {
       iid: 5, title: "T", description: "D", labels: ["bug"], web_url: "https://gl/5",
     },
@@ -52,6 +59,19 @@ test("getIssue merges detail, non-system notes, and related MRs", async () => {
   assert.deepEqual(out.comments, [{ author: "pm", body: "please also handle X" }]);
   assert.deepEqual(out.relatedMrs, [{ iid: 9, title: "old attempt", state: "closed", web_url: "https://gl/mr/9" }]);
   assert.equal(out.labels[0], "bug");
+});
+
+test("getIssue paginates related MRs and reports the default branch", async () => {
+  const client = fakeClient({
+    "/projects/g%2Fr": { default_branch: "develop" },
+    "/projects/g%2Fr/issues/5": { iid: 5, title: "T", description: "D", labels: [], web_url: "u" },
+    "/projects/g%2Fr/issues/5/notes": [],
+    "/projects/g%2Fr/issues/5/related_merge_requests": [],
+  });
+  const out = await getIssue(client, "g/r", 5);
+  assert.equal(out.default_branch, "develop");
+  const relatedCall = client.seen.find((c) => c.path.endsWith("/related_merge_requests"));
+  assert.equal(relatedCall.method, "getAll");
 });
 
 test("buildMrPayload adds Draft prefix and Closes footer", () => {
