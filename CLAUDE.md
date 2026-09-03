@@ -23,7 +23,6 @@ Each skill is a directory under `skills/` containing a `SKILL.md` with YAML fron
 
 - **headless-web-fetch** — Has runtime code (`fetch.js`). Uses Playwright to fetch JS-rendered pages. Auto-installs dependencies on first run. Called via `node <skill-dir>/fetch.js <url>`.
 - **zeplin-sync** — Has runtime code (`zeplin.js`). Given a Zeplin screen URL (needs `ZEPLIN_TOKEN`), prints a normalized design-spec JSON + downloads the reference image; SKILL.md then drives a render/screenshot/compare loop (via Playwright MCP) to align a component's code to the design. Called via `node <skill-dir>/zeplin.js <screen-url>`.
-- **gitlab-issue-dev** — Has runtime code (`gitlab.js`). Lists GitLab issues assigned to the user and drives issue → branch → Draft MR. Called via `node <skill-dir>/gitlab.js <issues|issue <iid>|mr ...>`.
 - **g** — Has runtime code (`g.js`). `/g` entry for the team git standard: start / commit (commits + pushes) / ship (push + non-Draft MR with assignee) / sync (return to base, ff-only, auto-delete merged branches). Called via `node <skill-dir>/g.js <status|base|branch-name|start|push|mr-find|mr-create|merged-branches|delete-branches>`.
 
 ## Adding a New Skill
