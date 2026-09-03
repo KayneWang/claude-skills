@@ -65,16 +65,13 @@ test("branch existence checks", () => {
   assert.deepEqual(exec.calls[2], ["ls-remote", "--heads", "origin", "feat/x"]);
 });
 
-test("switchCreate, description get/set", () => {
-  const exec = fakeExec([{ out: "" }, { out: "" }, { out: "登录记住我\n" }, { fail: "" }]);
+test("switchCreate, setDescription", () => {
+  const exec = fakeExec([{ out: "" }, { out: "" }]);
   const git = createGit({ exec });
   git.switchCreate("feat/spar-1", "origin/main");
   git.setDescription("feat/spar-1", "登录记住我");
-  assert.equal(git.getDescription("feat/spar-1"), "登录记住我");
-  assert.equal(git.getDescription("feat/none"), null);
   assert.deepEqual(exec.calls[0], ["switch", "-c", "feat/spar-1", "origin/main"]);
   assert.deepEqual(exec.calls[1], ["config", "branch.feat/spar-1.description", "登录记住我"]);
-  assert.deepEqual(exec.calls[2], ["config", "--get", "branch.feat/spar-1.description"]);
 });
 
 test("push rewraps non-fast-forward rejection", () => {
@@ -82,11 +79,6 @@ test("push rewraps non-fast-forward rejection", () => {
   const git = createGit({ exec });
   assert.throws(() => git.push("feat/x"), /Push rejected: origin\/feat\/x has commits you don't have locally/);
   assert.deepEqual(exec.calls[0], ["push", "-u", "origin", "feat/x"]);
-});
-
-test("pullFfOnly rewraps divergence", () => {
-  const git = createGit({ exec: fakeExec([{ fail: "fatal: Not possible to fast-forward, aborting." }]) });
-  assert.throws(() => git.pullFfOnly("main"), /Local main has diverged from origin\/main/);
 });
 
 test("listMerged and listTracked parse for-each-ref style output", () => {

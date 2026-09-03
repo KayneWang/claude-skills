@@ -22,6 +22,13 @@ function requireGitlab(git) {
   return { client: createClient(ctx), projectPath: ctx.projectPath };
 }
 
+// Detached HEAD gives an empty `git branch --show-current`; fail fast with a clear message.
+function requireBranch(git) {
+  const branch = git.currentBranch();
+  if (!branch) throw new Error("Detached HEAD: switch to a branch first.");
+  return branch;
+}
+
 async function main() {
   const [cmd, ...rest] = process.argv.slice(2);
   if (!COMMANDS.includes(cmd)) throw new Error(USAGE);
@@ -53,19 +60,20 @@ async function main() {
     if (description) git.setDescription(name, description);
     result = { name, base, description };
   } else if (cmd === "push") {
-    const branch = git.currentBranch();
-    if (!branch) throw new Error("Detached HEAD: switch to a branch first.");
+    const branch = requireBranch(git);
     const { base } = await resolveBase({ git, gitlab: tryGitlab(git) });
     if (branch === base) throw new Error(`Refusing to push: you are on the base branch "${base}". Start a branch with /g start first.`);
-    const before = git.unpushed() ?? git.revCount(`origin/${base}..HEAD`);
+    const count = git.unpushed() ?? git.tryRun(["rev-list", "--count", `origin/${base}..HEAD`]);
+    const before = count === null ? null : Number(count);
     git.push(branch);
     result = { branch, pushed: before };
   } else if (cmd === "mr-find") {
+    const branch = requireBranch(git);
     const gitlab = requireGitlab(git);
-    result = { mr: await findMr(gitlab.client, gitlab.projectPath, git.currentBranch()) };
+    result = { mr: await findMr(gitlab.client, gitlab.projectPath, branch) };
   } else if (cmd === "mr-create") {
+    const branch = requireBranch(git);
     const gitlab = requireGitlab(git);
-    const branch = git.currentBranch();
     const { base } = await resolveBase({ git, gitlab });
     if (branch === base) throw new Error(`Refusing to create an MR from the base branch "${base}".`);
     const target = parsed.target ?? base;

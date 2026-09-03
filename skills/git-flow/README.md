@@ -60,7 +60,7 @@ node <skill-dir>/g.js branch-name <type> [jira] [slug]
 node <skill-dir>/g.js start <name> [--description <d>]
 node <skill-dir>/g.js push
 node <skill-dir>/g.js mr-find
-node <skill-dir>/g.js mr-create --title <t> --description <d> [--assignee <username>] [--target <branch>]
+node <skill-dir>/g.js mr-create --title <t> (--description <d> | --description-file <path>) [--assignee <username>] [--target <branch>]
 node <skill-dir>/g.js merged-branches
 node <skill-dir>/g.js delete-branches <name...>
 ```
@@ -76,6 +76,6 @@ Node 18+，零 npm 依赖。测试：`npm test`。
 
 - **无法确定基准分支** → 设置 `GITLAB_TOKEN`，或运行 `git remote set-head origin -a`。
 - **Push rejected** → 这个分支在远端有别人的新提交，手动 `git pull` 后重试，agent 不会 force。
-- **Local main has diverged** → 本地基准分支上有误提交，`git log origin/main..main` 看一下，agent 不会自动 merge 或 rebase。
+- **Not possible to fast-forward** → 本地基准分支上有误提交，`git log origin/main..main` 看一下，agent 不会自动 merge 或 rebase。
 - **GitLab user "..." not found** → 请填 GitLab username（URL 里那个），不是显示名。
 - **401** → token 无效或过期，重新生成（`api` scope）。

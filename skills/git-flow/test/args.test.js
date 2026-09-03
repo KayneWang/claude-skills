@@ -1,5 +1,8 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import {
   USAGE,
   parseBranchNameArgs,
@@ -44,6 +47,11 @@ test("parseStartArgs: name with optional --description", () => {
   assert.throws(() => parseStartArgs(["feat/x", "--nope", "1"]), /Unknown flag: --nope/);
 });
 
+test("parseStartArgs rejects names that don't follow <type>/<jira-or-slug>", () => {
+  assert.throws(() => parseStartArgs(["feature/x"]), /Branch name "feature\/x" does not follow <type>\/<jira-or-slug>.*feat, fix, chore, refactor, docs, test/);
+  assert.throws(() => parseStartArgs(["main"]), /Branch name "main" does not follow <type>\/<jira-or-slug>/);
+});
+
 test("parseMrCreateArgs: required title/description, optional assignee/target", () => {
   assert.deepEqual(
     parseMrCreateArgs(["--title", "fix: spar-1 x", "--description", "d", "--assignee", "kayne.wang", "--target", "alpha"]),
@@ -51,8 +59,27 @@ test("parseMrCreateArgs: required title/description, optional assignee/target", 
   );
   assert.deepEqual(parseMrCreateArgs(["--title", "t", "--description", ""]), { title: "t", description: "", assignee: null, target: null });
   assert.throws(() => parseMrCreateArgs(["--description", "d"]), /--title is required/);
-  assert.throws(() => parseMrCreateArgs(["--title", "t"]), /--description is required/);
+  assert.throws(() => parseMrCreateArgs(["--title", "t"]), /--description or --description-file is required/);
   assert.throws(() => parseMrCreateArgs(["--title", "t", "--title", "u", "--description", "d"]), /Duplicate flag: --title/);
+});
+
+test("parseMrCreateArgs: --description-file reads file content; both flags conflict", () => {
+  const file = path.join(tmpdir(), `g-mr-description-test-${process.pid}.md`);
+  writeFileSync(file, "line one\nline two\n");
+  try {
+    assert.deepEqual(parseMrCreateArgs(["--title", "t", "--description-file", file]), {
+      title: "t",
+      description: "line one\nline two\n",
+      assignee: null,
+      target: null,
+    });
+    assert.throws(
+      () => parseMrCreateArgs(["--title", "t", "--description", "d", "--description-file", file]),
+      /Use either --description or --description-file, not both/
+    );
+  } finally {
+    rmSync(file, { force: true });
+  }
 });
 
 test("parseDeleteArgs requires at least one name", () => {

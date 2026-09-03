@@ -76,7 +76,8 @@ export function createClient({ host, token, protocol = "https", fetchImpl = fetc
 
     let res = await attempt();
     if (res.status === 429) {
-      const wait = Math.min(Number(res.headers.get("retry-after")) || 1, 30);
+      const n = Number(res.headers.get("retry-after"));
+      const wait = Math.min(Number.isFinite(n) && n >= 0 ? n : 1, 30);
       await new Promise((r) => setTimeout(r, wait * 1000));
       res = await attempt();
     }

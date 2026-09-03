@@ -3,7 +3,11 @@ import { execFileSync } from "node:child_process";
 // Default exec: run git with argv (no shell), return stdout; throw with stderr on failure.
 export function defaultExec(args) {
   try {
-    return execFileSync("git", args, { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] });
+    return execFileSync("git", args, {
+      encoding: "utf8",
+      stdio: ["ignore", "pipe", "pipe"],
+      env: { ...process.env, GIT_TERMINAL_PROMPT: "0" },
+    });
   } catch (err) {
     const stderr = (err.stderr ?? "").toString().trim();
     throw new Error(`git ${args.join(" ")} failed: ${stderr || err.message}`);
@@ -81,15 +85,9 @@ export function createGit({ exec = defaultExec } = {}) {
       run(["switch", "-c", name, startPoint]);
     },
 
-    switchTo(name) {
-      run(["switch", name]);
-    },
-
     setDescription(name, text) {
       run(["config", `branch.${name}.description`, text]);
     },
-
-    getDescription: (name) => tryRun(["config", "--get", `branch.${name}.description`]),
 
     push(branch) {
       try {
@@ -98,19 +96,6 @@ export function createGit({ exec = defaultExec } = {}) {
         if (/\[rejected\]|non-fast-forward|fetch first/.test(err.message)) {
           throw new Error(
             `Push rejected: origin/${branch} has commits you don't have locally. Run \`git pull\` on this branch, then retry.`
-          );
-        }
-        throw err;
-      }
-    },
-
-    pullFfOnly(base) {
-      try {
-        run(["pull", "--ff-only", "origin", base]);
-      } catch (err) {
-        if (/Not possible to fast-forward|diverg/i.test(err.message)) {
-          throw new Error(
-            `Local ${base} has diverged from origin/${base}. Inspect local commits on ${base} (git log origin/${base}..${base}); sync will not merge or rebase automatically.`
           );
         }
         throw err;
@@ -135,7 +120,5 @@ export function createGit({ exec = defaultExec } = {}) {
     deleteBranch(name) {
       run(["branch", "-d", name]);
     },
-
-    lastCommitSubject: () => run(["log", "-1", "--format=%s"]),
   };
 }

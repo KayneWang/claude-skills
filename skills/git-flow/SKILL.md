@@ -78,7 +78,7 @@ Commit and push in one go. With a clean tree and unpushed commits, it only pushe
 4. Title = `type: <jira> <描述>` (or `type: <描述>` without a jira key). Type and key come from the branch name. Description priority: `git config --get branch.<name>.description` → subject of the last commit with its `type: ` prefix stripped → ask the user.
 5. Description body: two short sections — what changed (from `git log origin/<target>..HEAD --oneline` and the diff) and how to verify.
 6. **Gate:** show title, target (default = base), assignee (or "none") and wait for approval.
-7. `node <skill-dir>/g.js mr-create --title "<t>" --description "<d>" [--assignee <username>] [--target <branch>]`.
+7. Write the description body to a temp file with the Write tool (e.g. `<os tmpdir>/g-mr-description.md`), then run `node <skill-dir>/g.js mr-create --title "<t>" --description-file <path> [--assignee <username>] [--target <branch>]`. Never inline the body with `--description "<d>"` on the command line — shell quoting mangles backticks and `$` in an agent-authored body. Keep the title itself free of backticks/`$` and pass it with double quotes.
    - `existing: true` in the output → someone created one meanwhile; report that URL.
    - `GitLab user "..." not found` → report; nothing was created. Ask for the correct username (not display name).
    - `Target branch ... does not exist on origin` → report; nothing was created.

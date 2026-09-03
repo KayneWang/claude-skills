@@ -4,12 +4,12 @@ import { execFile, execFileSync } from "node:child_process";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { mkdtempSync, writeFileSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { tmpdir, devNull } from "node:os";
 import path from "node:path";
 
 const run = promisify(execFile);
 const script = fileURLToPath(new URL("../g.js", import.meta.url));
-const env = { ...process.env };
+const env = { ...process.env, GIT_CONFIG_GLOBAL: devNull, GIT_CONFIG_SYSTEM: devNull };
 delete env.GITLAB_TOKEN;
 delete env.GITLAB_HOST;
 delete env.GITLAB_PROJECT;
@@ -40,22 +40,22 @@ test("no command / unknown command print usage, not a GITLAB_TOKEN error", async
 test("argument errors surface before context resolution", async () => {
   assert.match(await gFails(["branch-name", "feature", "x"]), /Unknown type "feature"/);
   assert.match(await gFails(["start"]), /Usage: g\.js/);
-  assert.match(await gFails(["mr-create", "--title", "t"]), /--description is required/);
+  assert.match(await gFails(["mr-create", "--title", "t"]), /--description or --description-file is required/);
   assert.match(await gFails(["delete-branches"]), /at least one branch/);
 });
 
 // ---- end-to-end in git mode (no token) against a temp bare origin ----
 
 function sh(cwd, args) {
-  return execFileSync("git", args, { cwd, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
+  return execFileSync("git", args, { cwd, env, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] }).trim();
 }
 
 function setupRepo() {
   const root = mkdtempSync(path.join(tmpdir(), "git-flow-"));
   const origin = path.join(root, "origin.git");
   const work = path.join(root, "work");
-  execFileSync("git", ["-c", "init.defaultBranch=main", "init", "--bare", origin], { stdio: "ignore" });
-  execFileSync("git", ["-c", "init.defaultBranch=main", "clone", origin, work], { stdio: "ignore" });
+  execFileSync("git", ["-c", "init.defaultBranch=main", "init", "--bare", origin], { env, stdio: "ignore" });
+  execFileSync("git", ["-c", "init.defaultBranch=main", "clone", origin, work], { env, stdio: "ignore" });
   sh(work, ["config", "user.email", "t@example.com"]);
   sh(work, ["config", "user.name", "t"]);
   writeFileSync(path.join(work, "README.md"), "hi\n");
@@ -114,4 +114,24 @@ test("push refuses to run on the base branch; mr commands require a token", asyn
   assert.match(await gFails(["push"], work), /on the base branch "main"/);
   assert.match(await gFails(["mr-find"], work), /GITLAB_TOKEN is not set/);
   assert.match(await gFails(["mr-create", "--title", "t", "--description", "d"], work), /GITLAB_TOKEN is not set/);
+});
+
+test("push does not abort when origin/<base> is not a local ref", async (t) => {
+  const { root, work } = setupRepo();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  sh(work, ["switch", "-c", "feat/spar-1"]);
+  writeFileSync(path.join(work, "a.txt"), "a\n");
+  sh(work, ["add", "."]);
+  sh(work, ["commit", "-m", "feat: add a"]);
+  // Drop the local remote-tracking ref for the base branch, as if it had never been fetched.
+  sh(work, ["update-ref", "-d", "refs/remotes/origin/main"]);
+  assert.deepEqual(await g(["push"], work), { branch: "feat/spar-1", pushed: null });
+});
+
+test("mr-find / mr-create refuse a detached HEAD", async (t) => {
+  const { root, work } = setupRepo();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  sh(work, ["checkout", "--detach", "HEAD"]);
+  assert.match(await gFails(["mr-find"], work), /Detached HEAD: switch to a branch first\./);
+  assert.match(await gFails(["mr-create", "--title", "t", "--description", "d"], work), /Detached HEAD: switch to a branch first\./);
 });

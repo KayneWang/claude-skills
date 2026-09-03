@@ -1,4 +1,5 @@
-import { TYPES, isJiraKey, isValidSlug } from "./branches.js";
+import { readFileSync } from "node:fs";
+import { TYPES, isJiraKey, isValidSlug, parseBranch } from "./branches.js";
 
 export const USAGE = `Usage: g.js <command>
   status
@@ -7,7 +8,7 @@ export const USAGE = `Usage: g.js <command>
   start <name> [--description <d>]
   push
   mr-find
-  mr-create --title <t> --description <d> [--assignee <username>] [--target <branch>]
+  mr-create --title <t> (--description <d> | --description-file <path>) [--assignee <username>] [--target <branch>]
   merged-branches
   delete-branches <name...>`;
 
@@ -50,17 +51,26 @@ export function parseBranchNameArgs(argv) {
 export function parseStartArgs(argv) {
   const [name, ...rest] = argv;
   if (!name || name.startsWith("--")) throw new Error(USAGE);
+  if (parseBranch(name) === null) {
+    throw new Error(`Branch name "${name}" does not follow <type>/<jira-or-slug> (types: ${TYPES.join(", ")})`);
+  }
   const opts = parseFlags(rest, ["--description"]);
   return { name, description: opts.description ?? null };
 }
 
 export function parseMrCreateArgs(argv) {
-  const opts = parseFlags(argv, ["--title", "--description", "--assignee", "--target"]);
+  const opts = parseFlags(argv, ["--title", "--description", "--description-file", "--assignee", "--target"]);
   if (!opts.title) throw new Error(`--title is required\n${USAGE}`);
-  if (opts.description === undefined) throw new Error(`--description is required\n${USAGE}`);
+  if (opts.description !== undefined && opts["description-file"] !== undefined) {
+    throw new Error(`Use either --description or --description-file, not both`);
+  }
+  if (opts.description === undefined && opts["description-file"] === undefined) {
+    throw new Error(`--description or --description-file is required\n${USAGE}`);
+  }
+  const description = opts["description-file"] !== undefined ? readFileSync(opts["description-file"], "utf8") : opts.description;
   return {
     title: opts.title,
-    description: opts.description,
+    description,
     assignee: opts.assignee ?? null,
     target: opts.target ?? null,
   };
