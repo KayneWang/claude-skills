@@ -1,6 +1,6 @@
 ---
 name: git-flow
-description: Use when the user runs `/g` or asks for the team git workflow — e.g. "/g start fix spar-111", "/g commit", "/g ship kayne.wang", "/g sync", "开个分支", "提交并推送", "建个 MR 给 xxx", "同步基准分支", "清理已合并的分支", "我现在在流程哪一步". Encodes the team standard: typed branches from the base branch, `type: 描述` commits that auto-push, non-Draft MRs with an assignee, and a sync that returns to base and prunes merged branches.
+description: "Use when the user runs `/g` or asks for the team git workflow — e.g. \"/g start fix spar-111\", \"/g commit\", \"/g ship kayne.wang\", \"/g sync\", \"开个分支\", \"提交并推送\", \"建个 MR 给 xxx\", \"同步基准分支\", \"清理已合并的分支\", \"我现在在流程哪一步\". Encodes the team standard: typed branches from the base branch, `type: 描述` commits that auto-push, non-Draft MRs with an assignee, and a sync that returns to base and prunes merged branches."
 ---
 
 # git-flow (`/g`)
@@ -51,7 +51,7 @@ Advice, in this order, list every line that applies:
 
 ## `/g start <type> [jira] [描述]`
 
-1. Tree must be clean (`status.clean` from `g.js status`, or `git status --porcelain`). If not, ask: stash / commit first / abort. Never discard changes.
+1. Tree must be clean (the `status.clean` field of the `g.js status` output, or `git status --porcelain`). If not, ask: stash / commit first / abort. Never discard changes.
 2. Parse: first token is the type (reject anything outside the six). If the next token matches a jira key, it is the key; everything remaining is the description.
 3. Build the slug only when there is no jira key: translate the description into 3–5 English words, kebab-case, ascii (`登录记住我` → `login-remember-me`). **Gate:** show the proposed branch name and wait for approval. With a jira key the name is `type/<key>` — no gate.
 4. Run `node <skill-dir>/g.js branch-name <type> [jira] [slug]`. If `existsLocal` or `existsRemote`, ask: reuse (`git switch <name>`) or choose another name. Never delete.
