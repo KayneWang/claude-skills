@@ -1,0 +1,84 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { buildMrTitle, projectId, getDefaultBranch, findMr, resolveUserId, createMr } from "../lib/mr.js";
+
+function stubClient(gets = [], posts = []) {
+  const calls = { get: [], post: [] };
+  return {
+    calls,
+    async get(path, params) {
+      calls.get.push({ path, params });
+      return gets.shift();
+    },
+    async post(path, body) {
+      calls.post.push({ path, body });
+      return posts.shift();
+    },
+  };
+}
+
+test("buildMrTitle with and without jira", () => {
+  assert.equal(buildMrTitle({ type: "fix", jira: "spar-111", description: "修复登录" }), "fix: spar-111 修复登录");
+  assert.equal(buildMrTitle({ type: "chore", jira: null, description: "升级 vite 到 6" }), "chore: 升级 vite 到 6");
+});
+
+test("projectId url-encodes the path", () => {
+  assert.equal(projectId("team/sub/app"), "team%2Fsub%2Fapp");
+});
+
+test("getDefaultBranch reads the project", async () => {
+  const c = stubClient([{ default_branch: "develop" }]);
+  assert.equal(await getDefaultBranch(c, "t/a"), "develop");
+  assert.equal(c.calls.get[0].path, "/projects/t%2Fa");
+});
+
+test("findMr prefers opened over merged, returns null when none", async () => {
+  const c = stubClient([
+    [
+      { iid: 3, web_url: "u3", state: "merged", target_branch: "main" },
+      { iid: 5, web_url: "u5", state: "opened", target_branch: "alpha" },
+    ],
+    [{ iid: 3, web_url: "u3", state: "merged", target_branch: "main" }],
+    [],
+  ]);
+  assert.deepEqual(await findMr(c, "t/a", "fix/x"), { iid: 5, web_url: "u5", state: "opened", target_branch: "alpha" });
+  assert.deepEqual(await findMr(c, "t/a", "fix/x"), { iid: 3, web_url: "u3", state: "merged", target_branch: "main" });
+  assert.equal(await findMr(c, "t/a", "fix/x"), null);
+  assert.equal(c.calls.get[0].path, "/projects/t%2Fa/merge_requests");
+  assert.deepEqual(c.calls.get[0].params, { source_branch: "fix/x", state: "all", order_by: "updated_at", sort: "desc", per_page: 20 });
+});
+
+test("resolveUserId returns the id or throws not found", async () => {
+  const c = stubClient([[{ id: 42, username: "kayne.wang" }], []]);
+  assert.equal(await resolveUserId(c, "kayne.wang"), 42);
+  assert.equal(c.calls.get[0].path, "/users");
+  assert.deepEqual(c.calls.get[0].params, { username: "kayne.wang" });
+  await assert.rejects(resolveUserId(c, "ghost"), /GitLab user "ghost" not found/);
+});
+
+test("createMr posts the full payload and returns iid + url", async () => {
+  const c = stubClient([], [{ iid: 9, web_url: "https://gl/mr/9", state: "opened" }]);
+  const out = await createMr(c, "t/a", {
+    sourceBranch: "fix/spar-1",
+    targetBranch: "main",
+    title: "fix: spar-1 x",
+    description: "desc",
+    assigneeId: 42,
+  });
+  assert.deepEqual(out, { iid: 9, web_url: "https://gl/mr/9" });
+  assert.equal(c.calls.post[0].path, "/projects/t%2Fa/merge_requests");
+  assert.deepEqual(c.calls.post[0].body, {
+    source_branch: "fix/spar-1",
+    target_branch: "main",
+    title: "fix: spar-1 x",
+    description: "desc",
+    remove_source_branch: true,
+    assignee_ids: [42],
+  });
+});
+
+test("createMr omits assignee_ids when no assignee", async () => {
+  const c = stubClient([], [{ iid: 1, web_url: "u" }]);
+  await createMr(c, "t/a", { sourceBranch: "s", targetBranch: "main", title: "t", description: "" });
+  assert.equal("assignee_ids" in c.calls.post[0].body, false);
+});
