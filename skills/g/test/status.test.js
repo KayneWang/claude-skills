@@ -6,7 +6,7 @@ function fakeGit(over = {}) {
   return {
     fetchPrune() {},
     originHead: () => "main",
-    currentBranch: () => "fix/spar-1",
+    currentBranch: () => "fix/demo-1",
     statusPorcelain: () => ({ clean: true, staged: 0, unstaged: 0, untracked: 0 }),
     aheadBehind: () => ({ ahead: 2, behind: 0 }),
     unpushed: () => 2,
@@ -14,7 +14,7 @@ function fakeGit(over = {}) {
     listTracked: () => [
       { name: "main", track: "" },
       { name: "feat/old", track: "[gone]" },
-      { name: "fix/spar-1", track: "[ahead 2]" },
+      { name: "fix/demo-1", track: "[ahead 2]" },
     ],
     ...over,
   };
@@ -50,15 +50,15 @@ test("resolveBase throws with a hint when nothing works", async () => {
 test("collectStatus composes git + MR + cleanup", async () => {
   const gitlab = fakeGitlab({
     defaultBranch: "main",
-    mrs: [{ iid: 7, web_url: "u7", state: "opened", target_branch: "main", source_branch: "fix/spar-1" }],
+    mrs: [{ iid: 7, web_url: "u7", state: "opened", target_branch: "main", source_branch: "fix/demo-1" }],
   });
   const s = await collectStatus({ git: fakeGit(), gitlab });
   assert.deepEqual(s.base, { base: "main", source: "gitlab" });
-  assert.equal(s.branch, "fix/spar-1");
+  assert.equal(s.branch, "fix/demo-1");
   assert.equal(s.onBase, false);
   assert.equal(s.branchValid, true);
   assert.equal(s.type, "fix");
-  assert.equal(s.jira, "spar-1");
+  assert.equal(s.jira, "demo-1");
   assert.equal(s.ahead, 2);
   assert.equal(s.behind, 0);
   assert.equal(s.hasUpstream, true);

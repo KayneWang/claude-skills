@@ -51,7 +51,7 @@ function sh(cwd, args) {
 }
 
 function setupRepo() {
-  const root = mkdtempSync(path.join(tmpdir(), "git-flow-"));
+  const root = mkdtempSync(path.join(tmpdir(), "g-"));
   const origin = path.join(root, "origin.git");
   const work = path.join(root, "work");
   execFileSync("git", ["-c", "init.defaultBranch=main", "init", "--bare", origin], { env, stdio: "ignore" });
@@ -72,37 +72,37 @@ test("git-mode lifecycle: base → branch-name → start → push → merged-bra
 
   assert.deepEqual(await g(["base"], work), { base: "main", source: "origin-head" });
 
-  assert.deepEqual(await g(["branch-name", "feat", "SPAR-1"], work), { name: "feat/spar-1", existsLocal: false, existsRemote: false });
+  assert.deepEqual(await g(["branch-name", "feat", "DEMO-1"], work), { name: "feat/demo-1", existsLocal: false, existsRemote: false });
 
-  assert.deepEqual(await g(["start", "feat/spar-1", "--description", "登录记住我"], work), { name: "feat/spar-1", base: "main", description: "登录记住我" });
-  assert.equal(sh(work, ["branch", "--show-current"]), "feat/spar-1");
-  assert.equal(sh(work, ["config", "--get", "branch.feat/spar-1.description"]), "登录记住我");
+  assert.deepEqual(await g(["start", "feat/demo-1", "--description", "登录记住我"], work), { name: "feat/demo-1", base: "main", description: "登录记住我" });
+  assert.equal(sh(work, ["branch", "--show-current"]), "feat/demo-1");
+  assert.equal(sh(work, ["config", "--get", "branch.feat/demo-1.description"]), "登录记住我");
 
-  assert.match(await gFails(["start", "feat/spar-1"], work), /already exists/);
+  assert.match(await gFails(["start", "feat/demo-1"], work), /already exists/);
 
   writeFileSync(path.join(work, "a.txt"), "a\n");
   sh(work, ["add", "."]);
   sh(work, ["commit", "-m", "feat: add a"]);
-  assert.deepEqual(await g(["push"], work), { branch: "feat/spar-1", pushed: 1 });
-  assert.deepEqual(await g(["branch-name", "feat", "spar-1"], work), { name: "feat/spar-1", existsLocal: true, existsRemote: true });
+  assert.deepEqual(await g(["push"], work), { branch: "feat/demo-1", pushed: 1 });
+  assert.deepEqual(await g(["branch-name", "feat", "demo-1"], work), { name: "feat/demo-1", existsLocal: true, existsRemote: true });
 
   const status = await g(["status"], work);
-  assert.equal(status.branch, "feat/spar-1");
+  assert.equal(status.branch, "feat/demo-1");
   assert.equal(status.type, "feat");
-  assert.equal(status.jira, "spar-1");
+  assert.equal(status.jira, "demo-1");
   assert.equal(status.ahead, 1);
   assert.equal(status.unpushed, 0);
   assert.equal(status.mr.state, "unknown");
 
   // Simulate "merged on GitLab with source branch deleted".
   sh(work, ["switch", "main"]);
-  sh(work, ["merge", "--no-ff", "feat/spar-1", "-m", "Merge feat/spar-1"]);
+  sh(work, ["merge", "--no-ff", "feat/demo-1", "-m", "Merge feat/demo-1"]);
   sh(work, ["push", "origin", "main"]);
-  sh(work, ["push", "origin", "--delete", "feat/spar-1"]);
+  sh(work, ["push", "origin", "--delete", "feat/demo-1"]);
 
-  assert.deepEqual(await g(["merged-branches"], work), { base: "main", branches: [{ name: "feat/spar-1", reason: "merged" }] });
-  const del = await g(["delete-branches", "feat/spar-1", "nope"], work);
-  assert.deepEqual(del.deleted, ["feat/spar-1"]);
+  assert.deepEqual(await g(["merged-branches"], work), { base: "main", branches: [{ name: "feat/demo-1", reason: "merged" }] });
+  const del = await g(["delete-branches", "feat/demo-1", "nope"], work);
+  assert.deepEqual(del.deleted, ["feat/demo-1"]);
   assert.equal(del.failed.length, 1);
   assert.equal(del.failed[0].name, "nope");
   assert.match(del.failed[0].reason, /branch 'nope' not found/);
@@ -119,13 +119,13 @@ test("push refuses to run on the base branch; mr commands require a token", asyn
 test("push does not abort when origin/<base> is not a local ref", async (t) => {
   const { root, work } = setupRepo();
   t.after(() => rmSync(root, { recursive: true, force: true }));
-  sh(work, ["switch", "-c", "feat/spar-1"]);
+  sh(work, ["switch", "-c", "feat/demo-1"]);
   writeFileSync(path.join(work, "a.txt"), "a\n");
   sh(work, ["add", "."]);
   sh(work, ["commit", "-m", "feat: add a"]);
   // Drop the local remote-tracking ref for the base branch, as if it had never been fetched.
   sh(work, ["update-ref", "-d", "refs/remotes/origin/main"]);
-  assert.deepEqual(await g(["push"], work), { branch: "feat/spar-1", pushed: null });
+  assert.deepEqual(await g(["push"], work), { branch: "feat/demo-1", pushed: null });
 });
 
 test("mr-find / mr-create refuse a detached HEAD", async (t) => {

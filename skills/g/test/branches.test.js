@@ -14,10 +14,10 @@ test("TYPES is the fixed team list", () => {
 });
 
 test("isJiraKey accepts PROJ-123 in any case, rejects others", () => {
-  assert.equal(isJiraKey("spar-111"), true);
-  assert.equal(isJiraKey("SPAR-111"), true);
+  assert.equal(isJiraKey("demo-111"), true);
+  assert.equal(isJiraKey("DEMO-111"), true);
   assert.equal(isJiraKey("spar111"), false);
-  assert.equal(isJiraKey("spar-"), false);
+  assert.equal(isJiraKey("demo-"), false);
   assert.equal(isJiraKey("login-page"), false);
   assert.equal(isJiraKey(""), false);
 });
@@ -32,13 +32,13 @@ test("isValidSlug enforces kebab-case ascii", () => {
 });
 
 test("buildBranchName prefers jira (lowercased) over slug", () => {
-  assert.equal(buildBranchName({ type: "fix", jira: "SPAR-111", slug: null }), "fix/spar-111");
+  assert.equal(buildBranchName({ type: "fix", jira: "DEMO-111", slug: null }), "fix/demo-111");
   assert.equal(buildBranchName({ type: "feat", jira: null, slug: "login-remember-me" }), "feat/login-remember-me");
-  assert.equal(buildBranchName({ type: "feat", jira: "spar-2", slug: "ignored" }), "feat/spar-2");
+  assert.equal(buildBranchName({ type: "feat", jira: "demo-2", slug: "ignored" }), "feat/demo-2");
 });
 
 test("parseBranch splits type and detects jira", () => {
-  assert.deepEqual(parseBranch("fix/spar-111"), { type: "fix", jira: "spar-111", slug: "spar-111" });
+  assert.deepEqual(parseBranch("fix/demo-111"), { type: "fix", jira: "demo-111", slug: "demo-111" });
   assert.deepEqual(parseBranch("feat/login-page"), { type: "feat", jira: null, slug: "login-page" });
   assert.equal(parseBranch("main"), null);
   assert.equal(parseBranch("feature/x"), null);

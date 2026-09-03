@@ -1,5 +1,5 @@
 {
-  "name": "git-flow",
+  "name": "g",
   "version": "1.0.0",
   "description": "Team git workflow for Claude Code: start / commit / ship / sync with GitLab MR creation",
   "type": "module",

@@ -18,7 +18,7 @@ test("USAGE lists every subcommand", () => {
 });
 
 test("parseBranchNameArgs: type + jira", () => {
-  assert.deepEqual(parseBranchNameArgs(["fix", "SPAR-111"]), { type: "fix", jira: "spar-111", slug: null });
+  assert.deepEqual(parseBranchNameArgs(["fix", "DEMO-111"]), { type: "fix", jira: "demo-111", slug: null });
 });
 
 test("parseBranchNameArgs: type + slug", () => {
@@ -26,7 +26,7 @@ test("parseBranchNameArgs: type + slug", () => {
 });
 
 test("parseBranchNameArgs: type + jira + slug keeps both", () => {
-  assert.deepEqual(parseBranchNameArgs(["feat", "spar-2", "login-page"]), { type: "feat", jira: "spar-2", slug: "login-page" });
+  assert.deepEqual(parseBranchNameArgs(["feat", "demo-2", "login-page"]), { type: "feat", jira: "demo-2", slug: "login-page" });
 });
 
 test("parseBranchNameArgs rejects unknown type with the allowed list", () => {
@@ -40,8 +40,8 @@ test("parseBranchNameArgs rejects bad slug and missing args", () => {
 });
 
 test("parseStartArgs: name with optional --description", () => {
-  assert.deepEqual(parseStartArgs(["feat/spar-1"]), { name: "feat/spar-1", description: null });
-  assert.deepEqual(parseStartArgs(["feat/spar-1", "--description", "登录记住我"]), { name: "feat/spar-1", description: "登录记住我" });
+  assert.deepEqual(parseStartArgs(["feat/demo-1"]), { name: "feat/demo-1", description: null });
+  assert.deepEqual(parseStartArgs(["feat/demo-1", "--description", "登录记住我"]), { name: "feat/demo-1", description: "登录记住我" });
   assert.throws(() => parseStartArgs([]), /Usage: g\.js/);
   assert.throws(() => parseStartArgs(["feat/x", "--description"]), /Missing value for --description/);
   assert.throws(() => parseStartArgs(["feat/x", "--nope", "1"]), /Unknown flag: --nope/);
@@ -54,8 +54,8 @@ test("parseStartArgs rejects names that don't follow <type>/<jira-or-slug>", () 
 
 test("parseMrCreateArgs: required title/description, optional assignee/target", () => {
   assert.deepEqual(
-    parseMrCreateArgs(["--title", "fix: spar-1 x", "--description", "d", "--assignee", "kayne.wang", "--target", "alpha"]),
-    { title: "fix: spar-1 x", description: "d", assignee: "kayne.wang", target: "alpha" }
+    parseMrCreateArgs(["--title", "fix: demo-1 x", "--description", "d", "--assignee", "jane.doe", "--target", "alpha"]),
+    { title: "fix: demo-1 x", description: "d", assignee: "jane.doe", target: "alpha" }
   );
   assert.deepEqual(parseMrCreateArgs(["--title", "t", "--description", ""]), { title: "t", description: "", assignee: null, target: null });
   assert.throws(() => parseMrCreateArgs(["--description", "d"]), /--title is required/);

@@ -1,4 +1,4 @@
-# git-flow
+# g
 
 团队 git 规范的统一入口 `/g`：开分支 → 提交并推送 → 建 MR → 同步基准分支。规范靠护栏拦，不靠人记；macOS 和 Windows 都能用。
 
@@ -9,9 +9,9 @@
 | 命令 | 做什么 |
 | --- | --- |
 | `/g` | 看你在流程的哪一步：当前分支、领先/落后基准、未推送数、MR 状态、待清理分支，并给出下一步建议 |
-| `/g start <type> [jira单号] [描述]` | 从最新基准分支切分支。`/g start fix spar-111` → `fix/spar-111`；`/g start feat 登录记住我` → `feat/login-remember-me`（描述会翻成英文 slug，切之前给你确认） |
+| `/g start <type> [jira单号] [描述]` | 从最新基准分支切分支。`/g start fix demo-111` → `fix/demo-111`；`/g start feat 登录记住我` → `feat/login-remember-me`（描述会翻成英文 slug，切之前给你确认） |
 | `/g commit [描述]` | 生成 `type: 描述` 的 commit（type 从分支名推断）并**自动推送**。工作区干净时只推送 |
-| `/g ship [assignee] [目标分支]` | 推送并创建 MR。`/g ship kayne.wang` → 目标为基准分支、assignee 为 kayne.wang；`/g ship kayne.wang alpha` → 目标 alpha。标题自动拼成 `fix: spar-111 描述`，建之前给你确认 |
+| `/g ship [assignee] [目标分支]` | 推送并创建 MR。`/g ship jane.doe` → 目标为基准分支、assignee 为 jane.doe；`/g ship jane.doe alpha` → 目标 alpha。标题自动拼成 `fix: demo-111 描述`，建之前给你确认 |
 | `/g sync` | 回到基准分支，fast-forward 拉取，**自动删除**本地已合并的分支 |
 
 type 只认六种：`feat`、`fix`、`chore`、`refactor`、`docs`、`test`。

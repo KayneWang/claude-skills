@@ -18,7 +18,7 @@ function stubClient(gets = [], posts = []) {
 }
 
 test("buildMrTitle with and without jira", () => {
-  assert.equal(buildMrTitle({ type: "fix", jira: "spar-111", description: "修复登录" }), "fix: spar-111 修复登录");
+  assert.equal(buildMrTitle({ type: "fix", jira: "demo-111", description: "修复登录" }), "fix: demo-111 修复登录");
   assert.equal(buildMrTitle({ type: "chore", jira: null, description: "升级 vite 到 6" }), "chore: 升级 vite 到 6");
 });
 
@@ -49,28 +49,28 @@ test("findMr prefers opened over merged, returns null when none", async () => {
 });
 
 test("resolveUserId returns the id or throws not found", async () => {
-  const c = stubClient([[{ id: 42, username: "kayne.wang" }], []]);
-  assert.equal(await resolveUserId(c, "kayne.wang"), 42);
+  const c = stubClient([[{ id: 42, username: "jane.doe" }], []]);
+  assert.equal(await resolveUserId(c, "jane.doe"), 42);
   assert.equal(c.calls.get[0].path, "/users");
-  assert.deepEqual(c.calls.get[0].params, { username: "kayne.wang" });
+  assert.deepEqual(c.calls.get[0].params, { username: "jane.doe" });
   await assert.rejects(resolveUserId(c, "ghost"), /GitLab user "ghost" not found/);
 });
 
 test("createMr posts the full payload and returns iid + url", async () => {
   const c = stubClient([], [{ iid: 9, web_url: "https://gl/mr/9", state: "opened" }]);
   const out = await createMr(c, "t/a", {
-    sourceBranch: "fix/spar-1",
+    sourceBranch: "fix/demo-1",
     targetBranch: "main",
-    title: "fix: spar-1 x",
+    title: "fix: demo-1 x",
     description: "desc",
     assigneeId: 42,
   });
   assert.deepEqual(out, { iid: 9, web_url: "https://gl/mr/9" });
   assert.equal(c.calls.post[0].path, "/projects/t%2Fa/merge_requests");
   assert.deepEqual(c.calls.post[0].body, {
-    source_branch: "fix/spar-1",
+    source_branch: "fix/demo-1",
     target_branch: "main",
-    title: "fix: spar-1 x",
+    title: "fix: demo-1 x",
     description: "desc",
     remove_source_branch: true,
     assignee_ids: [42],

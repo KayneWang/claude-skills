@@ -15,7 +15,7 @@ export function buildBranchName({ type, jira, slug }) {
   return `${type}/${jira ? jira.toLowerCase() : slug}`;
 }
 
-// "fix/spar-111" → { type, jira, slug }; null when the name is not type/<something>.
+// "fix/demo-111" → { type, jira, slug }; null when the name is not type/<something>.
 export function parseBranch(name) {
   const m = typeof name === "string" ? name.match(/^([a-z]+)\/(.+)$/) : null;
   if (!m || !TYPES.includes(m[1])) return null;

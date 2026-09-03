@@ -16,9 +16,9 @@ function fakeExec(script) {
 }
 
 test("currentBranch and remoteUrl", () => {
-  const exec = fakeExec([{ out: "feat/spar-1\n" }, { out: "git@gitlab.com:t/a.git\n" }]);
+  const exec = fakeExec([{ out: "feat/demo-1\n" }, { out: "git@gitlab.com:t/a.git\n" }]);
   const git = createGit({ exec });
-  assert.equal(git.currentBranch(), "feat/spar-1");
+  assert.equal(git.currentBranch(), "feat/demo-1");
   assert.equal(git.remoteUrl(), "git@gitlab.com:t/a.git");
   assert.deepEqual(exec.calls[0], ["branch", "--show-current"]);
   assert.deepEqual(exec.calls[1], ["remote", "get-url", "origin"]);
@@ -68,10 +68,10 @@ test("branch existence checks", () => {
 test("switchCreate, setDescription", () => {
   const exec = fakeExec([{ out: "" }, { out: "" }]);
   const git = createGit({ exec });
-  git.switchCreate("feat/spar-1", "origin/main");
-  git.setDescription("feat/spar-1", "登录记住我");
-  assert.deepEqual(exec.calls[0], ["switch", "-c", "feat/spar-1", "origin/main"]);
-  assert.deepEqual(exec.calls[1], ["config", "branch.feat/spar-1.description", "登录记住我"]);
+  git.switchCreate("feat/demo-1", "origin/main");
+  git.setDescription("feat/demo-1", "登录记住我");
+  assert.deepEqual(exec.calls[0], ["switch", "-c", "feat/demo-1", "origin/main"]);
+  assert.deepEqual(exec.calls[1], ["config", "branch.feat/demo-1.description", "登录记住我"]);
 });
 
 test("push rewraps non-fast-forward rejection", () => {

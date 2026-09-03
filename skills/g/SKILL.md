@@ -1,9 +1,9 @@
 ---
-name: git-flow
-description: "Use when the user runs `/g` or asks for the team git workflow — e.g. \"/g start fix spar-111\", \"/g commit\", \"/g ship kayne.wang\", \"/g sync\", \"开个分支\", \"提交并推送\", \"建个 MR 给 xxx\", \"同步基准分支\", \"清理已合并的分支\", \"我现在在流程哪一步\". Encodes the team standard: typed branches from the base branch, `type: 描述` commits that auto-push, non-Draft MRs with an assignee, and a sync that returns to base and prunes merged branches."
+name: g
+description: "Use when the user runs `/g` or asks for the team git workflow — e.g. \"/g start fix demo-111\", \"/g commit\", \"/g ship jane.doe\", \"/g sync\", \"开个分支\", \"提交并推送\", \"建个 MR 给 xxx\", \"同步基准分支\", \"清理已合并的分支\", \"我现在在流程哪一步\". Encodes the team standard: typed branches from the base branch, `type: 描述` commits that auto-push, non-Draft MRs with an assignee, and a sync that returns to base and prunes merged branches."
 ---
 
-# git-flow (`/g`)
+# g (`/g`)
 
 One entry point for the team git standard. Every deterministic git / GitLab step runs through `node <skill-dir>/g.js <command>` (prints JSON; non-zero exit + one stderr line on failure). You do the judgment, the gates, and the wording.
 
@@ -19,7 +19,7 @@ One entry point for the team git standard. Every deterministic git / GitLab step
 
 Synonyms (accept silently, never mention them in output): `gst` → `/g`, `gcb` → `start`, `gc` / `gcmsg` / `gp` / `gpsup` → `commit`, `gl` → `sync`. Anything else after `/g` → show the verb table.
 
-Types: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`. Jira key looks like `spar-111` (any case; always lowercased).
+Types: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`. Jira key looks like `demo-111` (any case; always lowercased).
 
 ## Prerequisites
 
