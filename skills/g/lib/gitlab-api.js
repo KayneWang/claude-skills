@@ -69,7 +69,7 @@ export function createClient({ host, token, protocol = "https", fetchImpl = fetc
       } catch (err) {
         const cause = err.cause?.message ?? err.cause?.code;
         throw new Error(
-          `Request to ${url.origin} failed: ${err.message}${cause ? ` (${cause})` : ""}. Check the host and network, or override with GITLAB_HOST.`
+          `Request to ${url.origin} failed: ${err.message}${cause ? ` (${cause})` : ""}. Check the host and network, or override with GITLAB_HOST (use an http:// prefix for http-only instances).`
         );
       }
     }

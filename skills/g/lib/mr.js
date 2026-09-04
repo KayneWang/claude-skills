@@ -48,3 +48,18 @@ export async function createMr(client, projectPath, { sourceBranch, targetBranch
   const mr = await client.post(`/projects/${projectId(projectPath)}/merge_requests`, body);
   return { iid: mr.iid, web_url: mr.web_url };
 }
+
+// Find-or-create: never opens a second MR for the same source branch, and a 409
+// (someone created one between find and create) resolves to that MR instead of failing.
+export async function ensureMr(client, projectPath, opts) {
+  const existing = await findMr(client, projectPath, opts.sourceBranch);
+  if (existing?.state === "opened") return { iid: existing.iid, web_url: existing.web_url, existing: true };
+  try {
+    return { ...(await createMr(client, projectPath, opts)), existing: false };
+  } catch (err) {
+    if (err.status !== 409) throw err;
+    const raced = await findMr(client, projectPath, opts.sourceBranch);
+    if (raced?.state === "opened") return { iid: raced.iid, web_url: raced.web_url, existing: true };
+    throw err;
+  }
+}

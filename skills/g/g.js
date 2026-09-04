@@ -4,7 +4,7 @@ import { resolveContext, createClient } from "./lib/gitlab-api.js";
 import { USAGE, parseBranchNameArgs, parseStartArgs, parseMrCreateArgs, parseDeleteArgs } from "./lib/args.js";
 import { buildBranchName, computeMergedBranches } from "./lib/branches.js";
 import { resolveBase, collectStatus } from "./lib/status.js";
-import { findMr, resolveUserId, createMr } from "./lib/mr.js";
+import { findMr, resolveUserId, ensureMr } from "./lib/mr.js";
 
 const COMMANDS = ["status", "base", "branch-name", "start", "push", "mr-find", "mr-create", "merged-branches", "delete-branches"];
 
@@ -79,20 +79,14 @@ async function main() {
     const target = parsed.target ?? base;
     if (!git.remoteBranchExists(branch)) throw new Error(`origin/${branch} does not exist yet — push first.`);
     if (!git.remoteBranchExists(target)) throw new Error(`Target branch "${target}" does not exist on origin.`);
-    const existing = await findMr(gitlab.client, gitlab.projectPath, branch);
-    if (existing?.state === "opened") {
-      result = { iid: existing.iid, web_url: existing.web_url, existing: true };
-    } else {
-      const assigneeId = parsed.assignee ? await resolveUserId(gitlab.client, parsed.assignee) : null;
-      const mr = await createMr(gitlab.client, gitlab.projectPath, {
-        sourceBranch: branch,
-        targetBranch: target,
-        title: parsed.title,
-        description: parsed.description,
-        assigneeId,
-      });
-      result = { ...mr, existing: false };
-    }
+    const assigneeId = parsed.assignee ? await resolveUserId(gitlab.client, parsed.assignee) : null;
+    result = await ensureMr(gitlab.client, gitlab.projectPath, {
+      sourceBranch: branch,
+      targetBranch: target,
+      title: parsed.title,
+      description: parsed.description,
+      assigneeId,
+    });
   } else if (cmd === "merged-branches") {
     const { base } = await resolveBase({ git, gitlab: tryGitlab(git) });
     git.fetchPrune();
@@ -114,7 +108,8 @@ async function main() {
     result = { deleted, failed };
   }
 
-  console.log(JSON.stringify(result, null, 2));
+  // Single-line JSON: this output lands in the agent's context on every call.
+  console.log(JSON.stringify(result));
 }
 
 main().catch((err) => {

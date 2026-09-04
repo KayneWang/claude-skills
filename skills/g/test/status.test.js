@@ -87,3 +87,53 @@ test("collectStatus reports MR lookup errors instead of throwing", async () => {
   assert.equal(s.mr.state, "unknown");
   assert.match(s.mr.error, /500/);
 });
+
+// ---- advice: the deterministic "建议" lines of the /g panel ----
+
+import { computeAdvice } from "../lib/status.js";
+
+const clean = { clean: true, staged: 0, unstaged: 0, untracked: 0 };
+const dirty = { clean: false, staged: 1, unstaged: 0, untracked: 0 };
+const baseline = { base: { base: "main" }, onBase: false, branchValid: true, status: clean, ahead: 0, hasUpstream: true, unpushed: 0, mr: { state: "unknown" }, cleanup: [] };
+
+test("computeAdvice: nothing applies → 一切就绪", () => {
+  assert.deepEqual(computeAdvice(baseline), ["一切就绪"]);
+});
+
+test("computeAdvice: dirty tree on base → start first, then commit", () => {
+  assert.deepEqual(computeAdvice({ ...baseline, onBase: true, branchValid: false, status: dirty }), [
+    "先 /g start <type> ... 开分支，不要在 main 上直接提交",
+    "/g commit 提交并推送",
+  ]);
+});
+
+test("computeAdvice: invalid branch name off base", () => {
+  assert.deepEqual(computeAdvice({ ...baseline, branchValid: false }), [
+    "分支名不符合 type/xxx 规范，建议 /g start 新开分支后 cherry-pick",
+  ]);
+});
+
+test("computeAdvice: clean with unpushed commits → ship or push depending on MR", () => {
+  assert.deepEqual(computeAdvice({ ...baseline, unpushed: 2, mr: { state: "none" } }), ["/g ship <assignee> 创建 MR"]);
+  assert.deepEqual(computeAdvice({ ...baseline, unpushed: 2, mr: { state: "opened" } }), ["/g commit 推送本地 commit"]);
+  // no upstream yet but ahead of base counts as unpushed
+  assert.deepEqual(computeAdvice({ ...baseline, hasUpstream: false, unpushed: null, ahead: 1, mr: { state: "none" } }), ["/g ship <assignee> 创建 MR"]);
+  // unknown MR state (no token): still nudge to ship
+  assert.deepEqual(computeAdvice({ ...baseline, unpushed: 2 }), ["/g ship <assignee> 创建 MR"]);
+});
+
+test("computeAdvice: unpushed commits on base never suggest ship (ship refuses on base)", () => {
+  assert.deepEqual(computeAdvice({ ...baseline, onBase: true, branchValid: false, unpushed: 2 }), ["一切就绪"]);
+});
+
+test("computeAdvice: merged MR and cleanup list → sync", () => {
+  assert.deepEqual(computeAdvice({ ...baseline, mr: { state: "merged" }, cleanup: [{ name: "feat/old", reason: "merged" }] }), [
+    "/g sync 回到 main 并清理",
+    "/g sync 会自动删除上面的待清理分支",
+  ]);
+});
+
+test("collectStatus includes advice", async () => {
+  const s = await collectStatus({ git: fakeGit(), gitlab: null });
+  assert.ok(Array.isArray(s.advice) && s.advice.length > 0);
+});

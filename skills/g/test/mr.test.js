@@ -1,6 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { buildMrTitle, projectId, getDefaultBranch, findMr, resolveUserId, createMr } from "../lib/mr.js";
+import { buildMrTitle, projectId, getDefaultBranch, findMr, resolveUserId, createMr, ensureMr } from "../lib/mr.js";
 
 function stubClient(gets = [], posts = []) {
   const calls = { get: [], post: [] };
@@ -81,4 +81,29 @@ test("createMr omits assignee_ids when no assignee", async () => {
   const c = stubClient([], [{ iid: 1, web_url: "u" }]);
   await createMr(c, "t/a", { sourceBranch: "s", targetBranch: "main", title: "t", description: "" });
   assert.equal("assignee_ids" in c.calls.post[0].body, false);
+});
+
+test("ensureMr returns the opened MR instead of creating a second one", async () => {
+  const c = stubClient([[{ iid: 5, web_url: "u5", state: "opened", target_branch: "main" }]]);
+  const r = await ensureMr(c, "t/a", { sourceBranch: "fix/x", targetBranch: "main", title: "t", description: "d", assigneeId: null });
+  assert.deepEqual(r, { iid: 5, web_url: "u5", existing: true });
+  assert.equal(c.calls.post.length, 0);
+});
+
+test("ensureMr creates when none is open", async () => {
+  const c = stubClient([[]], [{ iid: 9, web_url: "u9" }]);
+  const r = await ensureMr(c, "t/a", { sourceBranch: "fix/x", targetBranch: "main", title: "t", description: "d", assigneeId: 3 });
+  assert.deepEqual(r, { iid: 9, web_url: "u9", existing: false });
+  assert.deepEqual(c.calls.post[0].body.assignee_ids, [3]);
+});
+
+test("ensureMr recovers from a 409 race by re-finding the MR", async () => {
+  const c = stubClient([[], [{ iid: 6, web_url: "u6", state: "opened", target_branch: "main" }]]);
+  c.post = async () => {
+    const err = new Error("GitLab API 409 on POST x: Another open merge request already exists");
+    err.status = 409;
+    throw err;
+  };
+  const r = await ensureMr(c, "t/a", { sourceBranch: "fix/x", targetBranch: "main", title: "t", description: "d", assigneeId: null });
+  assert.deepEqual(r, { iid: 6, web_url: "u6", existing: true });
 });

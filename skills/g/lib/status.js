@@ -45,7 +45,7 @@ export async function collectStatus({ git, gitlab }) {
     current: branch,
   });
 
-  return {
+  const result = {
     base,
     branch,
     onBase: branch === base.base,
@@ -60,4 +60,20 @@ export async function collectStatus({ git, gitlab }) {
     mr,
     cleanup,
   };
+  result.advice = computeAdvice(result);
+  return result;
+}
+
+// The "建议" lines of the /g panel, in priority order. Every rule that applies is listed.
+export function computeAdvice(s) {
+  const base = s.base.base;
+  const out = [];
+  const needsPush = (s.unpushed ?? 0) > 0 || (!s.hasUpstream && (s.ahead ?? 0) > 0);
+  if (s.onBase && !s.status.clean) out.push(`先 /g start <type> ... 开分支，不要在 ${base} 上直接提交`);
+  if (!s.branchValid && !s.onBase) out.push("分支名不符合 type/xxx 规范，建议 /g start 新开分支后 cherry-pick");
+  if (!s.status.clean) out.push("/g commit 提交并推送");
+  if (s.status.clean && needsPush && !s.onBase) out.push(s.mr.state === "opened" ? "/g commit 推送本地 commit" : "/g ship <assignee> 创建 MR");
+  if (s.mr.state === "merged") out.push(`/g sync 回到 ${base} 并清理`);
+  if (s.cleanup.length) out.push("/g sync 会自动删除上面的待清理分支");
+  return out.length ? out : ["一切就绪"];
 }
