@@ -55,7 +55,7 @@ MR：<无 | !iid (opened → target) url | !iid 已合并 url | 未知（原因�
 
 1. Base check (shared rules). If the branch is not `type/xxx` with a known type → ask which type to use (don't guess).
 2. Clean tree → skip to step 4.
-3. `git status --porcelain` + `git diff --stat`. Untracked files: list them and ask which to include. `git add -u` plus the approved untracked files. Message `type: 描述` — type from the branch, description from the user's argument or your one-line summary of the staged changes (user's language). Show it, then `git commit -m "<message>"` — no gate.
+3. `git status --porcelain` + `git diff --stat`. Untracked files: list them and ask which to include. `git add -u` plus the approved untracked files. Message is one line, `type: 描述`, and nothing else — type from the branch, description from the user's argument or your one-line summary of the staged changes (user's language). No body, no trailers (`Co-Authored-By`, `Claude-Session`, `Generated with ...`): the harness's default commit attribution does not apply to `/g`. Show it, then `git commit -m "<message>"` — no gate.
 4. `node <skill-dir>/g.js push`. On `Push rejected` do **not** force: origin has commits this branch lacks; suggest `git pull` on this branch, then retry. The commit stays.
 5. Report: commit hash + message (if any), commits pushed.
 
@@ -64,7 +64,17 @@ MR：<无 | !iid (opened → target) url | !iid 已合并 url | 未知（原因�
 1. Base check (shared rules). Uncommitted changes → run the full `/g commit` first; otherwise `node <skill-dir>/g.js push`.
 2. `node <skill-dir>/g.js mr-find`. `mr.state === "opened"` → report its URL and stop.
 3. Title = `type: <jira> <描述>` (or `type: <描述>` without a key), from the branch name. Description priority: `git config --get branch.<name>.description` → last commit subject with its `type: ` prefix stripped → ask.
-4. Body: two short sections — what changed (`git log origin/<target>..HEAD --oneline` + `git diff --stat origin/<target>..HEAD`) and how to verify.
+4. Body — exactly this shape, in the user's language, nothing before or after it:
+
+   ```
+   ## 改动
+   - <one line per commit: subject with its `type: ` prefix stripped>
+
+   ## 验证
+   - <one line: how a reviewer checks it works>
+   ```
+
+   Commits come from `git log origin/<target>..HEAD --oneline`; drop the hashes, fold fixup/wip-style commits into the line they belong to. One verification bullet, two at most. The body ends at the last bullet: no `--stat` block, no summary paragraph, no `Co-Authored-By` / `Generated with Claude Code` / session-link trailer — the harness's default PR attribution does not apply to `/g` output.
 5. **Gate:** show title, target (default = base), assignee (or "none") and wait for approval.
 6. Write the body to a temp file with the Write tool (e.g. `<os tmpdir>/g-mr-description.md`), then `node <skill-dir>/g.js mr-create --title "<t>" --description-file <path> [--assignee <username>] [--target <branch>]`. Never pass the body inline (shell quoting mangles backticks / `$`); keep the title free of backticks / `$`.
    - `existing: true` → an MR already existed (or was created meanwhile); report that URL.
