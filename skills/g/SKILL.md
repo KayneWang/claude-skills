@@ -12,7 +12,7 @@ One entry point for the team git standard. Every deterministic git / GitLab step
 | Verb | Args | What it does |
 | --- | --- | --- |
 | `/g` | — | status panel: where the user is in the flow, what to do next |
-| `/g start` | `<type> [jira] [描述]` | branch off the up-to-date base branch |
+| `/g start` | `<type> [jira] [描述] [--from <分支>]` | branch off the up-to-date base branch, or off `origin/<分支>` when `--from` is given |
 | `/g commit` | `[描述]` | commit `type: 描述` **and push**; push-only when the tree is clean |
 | `/g ship` | `[assignee] [target]` | push, then create a non-Draft MR (assignee = GitLab username; target defaults to base) |
 | `/g sync` | — | return to base, ff-only pull, auto-delete merged local branches |
@@ -42,14 +42,14 @@ MR：<无 | !iid (opened → target) url | !iid 已合并 url | 未知（原因�
 建议：<each `advice` entry verbatim, one per line; translate only if the user is not writing Chinese>
 ```
 
-## `/g start <type> [jira] [描述]`
+## `/g start <type> [jira] [描述] [--from <分支>]`
 
 1. Tree must be clean (`status.clean` from `g.js status`, or `git status --porcelain`).
-2. Parse: first token is the type (reject anything outside the six). If the next token matches a jira key, it is the key; everything remaining is the description.
+2. Parse: pull out `--from <分支>` first if present (the token right after `--from` is the source branch; it is not part of the description). Then the first token is the type (reject anything outside the six). If the next token matches a jira key, it is the key; everything remaining is the description.
 3. Without a jira key, build the slug: translate the description into 3–5 English words, kebab-case, ascii (`登录记住我` → `login-remember-me`). **Gate:** show the proposed branch name and wait for approval. With a jira key the name is `type/<key>` — no gate.
 4. `node <skill-dir>/g.js branch-name <type> [jira] [slug]`. If `existsLocal` or `existsRemote`, ask: reuse (`git switch <name>`) or choose another name.
-5. `node <skill-dir>/g.js start <name> [--description "<描述>"]` — pass `--description` only when both a jira key and a description were given (kept for the MR title).
-6. Report: branch, base, stored description.
+5. `node <skill-dir>/g.js start <name> [--description "<描述>"] [--from <分支>]` — pass `--description` only when both a jira key and a description were given (kept for the MR title). Pass `--from` only when the user gave it: the branch is then cut from `origin/<分支>` instead of the base branch. Without it, behaviour is unchanged (base branch).
+6. Report: branch, base (the `--from` branch when given), stored description. With `--from`, add one line: `/g ship` still targets the base branch by default — pass the target explicitly (`/g ship <assignee> <分支>`) if the MR should go elsewhere.
 
 ## `/g commit [描述]`
 

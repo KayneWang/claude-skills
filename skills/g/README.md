@@ -9,7 +9,7 @@
 | 命令 | 做什么 |
 | --- | --- |
 | `/g` | 看你在流程的哪一步：当前分支、领先/落后基准、未推送数、MR 状态、待清理分支，并给出下一步建议 |
-| `/g start <type> [jira单号] [描述]` | 从最新基准分支切分支。`/g start fix demo-111` → `fix/demo-111`；`/g start feat 登录记住我` → `feat/login-remember-me`（描述会翻成英文 slug，切之前给你确认） |
+| `/g start <type> [jira单号] [描述] [--from <分支>]` | 从最新基准分支切分支；带 `--from develop` 时改为从最新的 `origin/develop` 切。`/g start fix demo-111` → `fix/demo-111`；`/g start feat 登录记住我` → `feat/login-remember-me`（描述会翻成英文 slug，切之前给你确认） |
 | `/g commit [描述]` | 生成 `type: 描述` 的 commit（type 从分支名推断）并**自动推送**。工作区干净时只推送 |
 | `/g ship [assignee] [目标分支]` | 推送并创建 MR。`/g ship jane.doe` → 目标为基准分支、assignee 为 jane.doe；`/g ship jane.doe alpha` → 目标 alpha。标题自动拼成 `fix: demo-111 描述`，建之前给你确认 |
 | `/g sync` | 回到基准分支，fast-forward 拉取，**自动删除**本地已合并的分支 |
@@ -57,7 +57,7 @@ export GITLAB_PROJECT=team/app           # 原始路径，不要 URL 编码
 node <skill-dir>/g.js status
 node <skill-dir>/g.js base
 node <skill-dir>/g.js branch-name <type> [jira] [slug]
-node <skill-dir>/g.js start <name> [--description <d>]
+node <skill-dir>/g.js start <name> [--description <d>] [--from <branch>]
 node <skill-dir>/g.js push
 node <skill-dir>/g.js mr-find
 node <skill-dir>/g.js mr-create --title <t> (--description <d> | --description-file <path>) [--assignee <username>] [--target <branch>]

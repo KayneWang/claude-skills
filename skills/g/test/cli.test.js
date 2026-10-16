@@ -66,6 +66,25 @@ function setupRepo() {
   return { root, work };
 }
 
+test("start --from branches off origin/<from> instead of the base branch", async (t) => {
+  const { root, work } = setupRepo();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+
+  sh(work, ["switch", "-c", "develop"]);
+  writeFileSync(path.join(work, "dev.txt"), "dev\n");
+  sh(work, ["add", "."]);
+  sh(work, ["commit", "-m", "chore: dev only"]);
+  sh(work, ["push", "-u", "origin", "develop"]);
+  sh(work, ["switch", "main"]);
+
+  assert.deepEqual(await g(["start", "feat/demo-2", "--from", "develop"], work), { name: "feat/demo-2", base: "develop", description: null });
+  assert.equal(sh(work, ["branch", "--show-current"]), "feat/demo-2");
+  assert.equal(sh(work, ["rev-parse", "HEAD"]), sh(work, ["rev-parse", "origin/develop"]));
+
+  assert.match(await gFails(["start", "feat/demo-3", "--from", "nope"], work), /Source branch "nope" does not exist on origin/);
+  assert.equal(sh(work, ["branch", "--show-current"]), "feat/demo-2");
+});
+
 test("git-mode lifecycle: base → branch-name → start → push → merged-branches → delete-branches", async (t) => {
   const { root, work } = setupRepo();
   t.after(() => rmSync(root, { recursive: true, force: true }));

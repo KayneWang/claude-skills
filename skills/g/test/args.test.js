@@ -39,9 +39,11 @@ test("parseBranchNameArgs rejects bad slug and missing args", () => {
   assert.throws(() => parseBranchNameArgs([]), /Usage: g\.js/);
 });
 
-test("parseStartArgs: name with optional --description", () => {
-  assert.deepEqual(parseStartArgs(["feat/demo-1"]), { name: "feat/demo-1", description: null });
-  assert.deepEqual(parseStartArgs(["feat/demo-1", "--description", "登录记住我"]), { name: "feat/demo-1", description: "登录记住我" });
+test("parseStartArgs: name with optional --description / --from", () => {
+  assert.deepEqual(parseStartArgs(["feat/demo-1"]), { name: "feat/demo-1", description: null, from: null });
+  assert.deepEqual(parseStartArgs(["feat/demo-1", "--description", "登录记住我"]), { name: "feat/demo-1", description: "登录记住我", from: null });
+  assert.deepEqual(parseStartArgs(["feat/demo-1", "--from", "develop"]), { name: "feat/demo-1", description: null, from: "develop" });
+  assert.throws(() => parseStartArgs(["feat/x", "--from"]), /Missing value for --from/);
   assert.throws(() => parseStartArgs([]), /Usage: g\.js/);
   assert.throws(() => parseStartArgs(["feat/x", "--description"]), /Missing value for --description/);
   assert.throws(() => parseStartArgs(["feat/x", "--nope", "1"]), /Unknown flag: --nope/);

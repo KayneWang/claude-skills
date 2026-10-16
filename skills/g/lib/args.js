@@ -5,7 +5,7 @@ export const USAGE = `Usage: g.js <command>
   status
   base
   branch-name <type> [jira] [slug]
-  start <name> [--description <d>]
+  start <name> [--description <d>] [--from <branch>]
   push
   mr-find
   mr-create --title <t> (--description <d> | --description-file <path>) [--assignee <username>] [--target <branch>]
@@ -54,8 +54,8 @@ export function parseStartArgs(argv) {
   if (parseBranch(name) === null) {
     throw new Error(`Branch name "${name}" does not follow <type>/<jira-or-slug> (types: ${TYPES.join(", ")})`);
   }
-  const opts = parseFlags(rest, ["--description"]);
-  return { name, description: opts.description ?? null };
+  const opts = parseFlags(rest, ["--description", "--from"]);
+  return { name, description: opts.description ?? null, from: opts.from ?? null };
 }
 
 export function parseMrCreateArgs(argv) {
