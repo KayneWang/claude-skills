@@ -52,9 +52,11 @@ async function main() {
     const name = buildBranchName(parsed);
     result = { name, existsLocal: git.localBranchExists(name), existsRemote: git.remoteBranchExists(name) };
   } else if (cmd === "start") {
-    const { name, description } = parsed;
+    const { name, description, from } = parsed;
     if (git.localBranchExists(name)) throw new Error(`Branch "${name}" already exists locally. Reuse it (git switch ${name}) or pick another name.`);
-    const { base } = await resolveBase({ git, gitlab: tryGitlab(git) });
+    // --from overrides the start point for this branch only; the repo's base branch is unchanged.
+    if (from && !git.remoteBranchExists(from)) throw new Error(`Source branch "${from}" does not exist on origin.`);
+    const base = from ?? (await resolveBase({ git, gitlab: tryGitlab(git) })).base;
     git.fetchBranch(base);
     git.switchCreate(name, `origin/${base}`);
     if (description) git.setDescription(name, description);
