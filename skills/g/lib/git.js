@@ -89,6 +89,23 @@ export function createGit({ exec = defaultExec } = {}) {
       run(["config", `branch.${name}.description`, text]);
     },
 
+    // Per-branch base recorded by `start --from`; `git branch -d` drops it with the branch.
+    getBranchBase: (name) => tryRun(["config", "--get", `branch.${name}.g-base`]) || null,
+
+    setBranchBase(name, base) {
+      run(["config", `branch.${name}.g-base`, base]);
+    },
+
+    // { branch → recorded base } for every local branch that has one.
+    listBranchBases() {
+      const out = {};
+      for (const line of lines(tryRun(["config", "--get-regexp", "^branch\\..*\\.g-base$"]))) {
+        const m = line.match(/^branch\.(.+)\.g-base\s+(.+)$/);
+        if (m) out[m[1]] = m[2];
+      }
+      return out;
+    },
+
     push(branch) {
       try {
         run(["push", "-u", "origin", branch]);

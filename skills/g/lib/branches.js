@@ -24,9 +24,10 @@ export function parseBranch(name) {
 }
 
 // merged: names from `git branch --merged origin/<base>`; tracked: from for-each-ref
-// with %(upstream:track) — "[gone]" means the upstream was deleted.
-export function computeMergedBranches({ merged, tracked, base, current }) {
-  const skip = new Set([base, current]);
+// with %(upstream:track) — "[gone]" means the upstream was deleted. keep: never listed
+// (branches other branches were started from).
+export function computeMergedBranches({ merged, tracked, base, current, keep = [] }) {
+  const skip = new Set([base, current, ...keep]);
   const out = [];
   const seen = new Set();
   for (const name of merged) {

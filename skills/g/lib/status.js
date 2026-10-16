@@ -19,10 +19,39 @@ export async function resolveBase({ git, gitlab }) {
   );
 }
 
+// The base a branch belongs to: the one `start --from` recorded, else the repo base.
+export async function resolveBranchBase({ git, gitlab, branch }) {
+  const recorded = branch ? git.getBranchBase(branch) : null;
+  if (recorded) return { base: recorded, source: "branch" };
+  return resolveBase({ git, gitlab });
+}
+
+// Merged / gone local branches, each judged against its own base. Branches that others were
+// started from (e.g. develop) are never listed.
+export function collectCleanup({ git, repoBase, current }) {
+  const bases = git.listBranchBases();
+  const baseOf = (name) => bases[name] ?? repoBase;
+  const merged = [];
+  for (const b of new Set([repoBase, ...Object.values(bases)])) {
+    // A recorded base may have been deleted on origin; skip it rather than fail the whole list.
+    let list;
+    try {
+      list = git.listMerged(b);
+    } catch (err) {
+      if (b === repoBase) throw err;
+      continue;
+    }
+    merged.push(...list.filter((name) => baseOf(name) === b));
+  }
+  return computeMergedBranches({ merged, tracked: git.listTracked(), base: repoBase, current, keep: Object.values(bases) });
+}
+
 export async function collectStatus({ git, gitlab }) {
   git.fetchPrune();
-  const base = await resolveBase({ git, gitlab });
+  const repoBase = await resolveBase({ git, gitlab });
   const branch = git.currentBranch();
+  const recorded = branch ? git.getBranchBase(branch) : null;
+  const base = recorded ? { base: recorded, source: "branch" } : repoBase;
   const parsed = parseBranch(branch);
   const status = git.statusPorcelain();
   const ab = git.aheadBehind(base.base);
@@ -38,12 +67,7 @@ export async function collectStatus({ git, gitlab }) {
     }
   }
 
-  const cleanup = computeMergedBranches({
-    merged: git.listMerged(base.base),
-    tracked: git.listTracked(),
-    base: base.base,
-    current: branch,
-  });
+  const cleanup = collectCleanup({ git, repoBase: repoBase.base, current: branch });
 
   const result = {
     base,

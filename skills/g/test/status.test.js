@@ -11,6 +11,8 @@ function fakeGit(over = {}) {
     aheadBehind: () => ({ ahead: 2, behind: 0 }),
     unpushed: () => 2,
     listMerged: () => ["main", "feat/old"],
+    getBranchBase: () => null,
+    listBranchBases: () => ({}),
     listTracked: () => [
       { name: "main", track: "" },
       { name: "feat/old", track: "[gone]" },
@@ -136,4 +138,39 @@ test("computeAdvice: merged MR and cleanup list → sync", () => {
 test("collectStatus includes advice", async () => {
   const s = await collectStatus({ git: fakeGit(), gitlab: null });
   assert.ok(Array.isArray(s.advice) && s.advice.length > 0);
+});
+
+test("collectStatus uses the base recorded by start --from; cleanup judges each branch by its own base", async () => {
+  const merged = { main: ["main", "develop", "feat/old", "feat/dev-done"], develop: ["develop", "feat/dev-done"] };
+  const s = await collectStatus({
+    git: fakeGit({
+      currentBranch: () => "feat/dev-1",
+      getBranchBase: (name) => (name === "feat/dev-1" ? "develop" : null),
+      listBranchBases: () => ({ "feat/dev-1": "develop", "feat/dev-done": "develop" }),
+      listMerged: (b) => merged[b],
+      listTracked: () => [],
+    }),
+    gitlab: null,
+  });
+  assert.deepEqual(s.base, { base: "develop", source: "branch" });
+  assert.equal(s.onBase, false);
+  // develop is a recorded base → kept even though it is merged into main.
+  assert.deepEqual(s.cleanup, [
+    { name: "feat/old", reason: "merged" },
+    { name: "feat/dev-done", reason: "merged" },
+  ]);
+});
+
+test("collectStatus: a recorded base gone from origin does not break cleanup", async () => {
+  const s = await collectStatus({
+    git: fakeGit({
+      listBranchBases: () => ({ "feat/x": "gone-base" }),
+      listMerged: (b) => {
+        if (b === "gone-base") throw new Error("git branch --merged failed");
+        return ["main", "feat/old"];
+      },
+    }),
+    gitlab: null,
+  });
+  assert.deepEqual(s.cleanup.map((c) => c.name), ["feat/old"]);
 });

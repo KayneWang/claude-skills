@@ -12,7 +12,7 @@ One entry point for the team git standard. Every deterministic git / GitLab step
 | Verb | Args | What it does |
 | --- | --- | --- |
 | `/g` | — | status panel: where the user is in the flow, what to do next |
-| `/g start` | `<type> [jira] [描述] [--from <分支>]` | branch off the up-to-date base branch, or off `origin/<分支>` when `--from` is given |
+| `/g start` | `<type> [jira] [描述] [--from <分支>]` | branch off the up-to-date base branch, or off `origin/<分支>` when `--from` is given (that branch then becomes this branch's base) |
 | `/g commit` | `[描述]` | commit `type: 描述` **and push**; push-only when the tree is clean |
 | `/g ship` | `[assignee] [target]` | push, then create a non-Draft MR (assignee = GitLab username; target defaults to base) |
 | `/g sync` | — | return to base, ff-only pull, auto-delete merged local branches |
@@ -25,6 +25,7 @@ Types: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`. Jira key looks like `
 
 - Needs a git repo with an `origin` remote; otherwise stop.
 - `GITLAB_TOKEN` (PAT, `api` scope) is required for `ship` and for MR info in the panel. `status` / `start` / `sync` work without it (base = `origin/HEAD`). Self-hosted: host/project come from the remote URL; `GITLAB_HOST` / `GITLAB_PROJECT` override.
+- **Base is per branch:** `g.js base` / `status` / `push` / `mr-create` use the base `start --from` recorded for the current branch, else the repo base. Always ask `g.js` — never assume the repo default.
 - **On base is refused** for `commit` and `ship`: if `git branch --show-current` equals `g.js base`, stop and point to `/g start`.
 - **Dirty tree** (`git status --porcelain` non-empty) blocks `start` and `sync`: ask stash / commit first / abort. Never discard changes.
 - **Errors:** relay the stderr line verbatim — it already contains the fix (token setup, `GITLAB_HOST`, reuse-vs-rename, ...). Any `Refusing to ...` → point to `/g start`. Never force-push, never `branch -D`.
@@ -48,8 +49,8 @@ MR：<无 | !iid (opened → target) url | !iid 已合并 url | 未知（原因�
 2. Parse: pull out `--from <分支>` first if present (the token right after `--from` is the source branch; it is not part of the description). Then the first token is the type (reject anything outside the six). If the next token matches a jira key, it is the key; everything remaining is the description.
 3. Without a jira key, build the slug: translate the description into 3–5 English words, kebab-case, ascii (`登录记住我` → `login-remember-me`). **Gate:** show the proposed branch name and wait for approval. With a jira key the name is `type/<key>` — no gate.
 4. `node <skill-dir>/g.js branch-name <type> [jira] [slug]`. If `existsLocal` or `existsRemote`, ask: reuse (`git switch <name>`) or choose another name.
-5. `node <skill-dir>/g.js start <name> [--description "<描述>"] [--from <分支>]` — pass `--description` only when both a jira key and a description were given (kept for the MR title). Pass `--from` only when the user gave it: the branch is then cut from `origin/<分支>` instead of the base branch. Without it, behaviour is unchanged (base branch).
-6. Report: branch, base (the `--from` branch when given), stored description. With `--from`, add one line: `/g ship` still targets the base branch by default — pass the target explicitly (`/g ship <assignee> <分支>`) if the MR should go elsewhere.
+5. `node <skill-dir>/g.js start <name> [--description "<描述>"] [--from <分支>]` — pass `--description` only when both a jira key and a description were given (kept for the MR title). Pass `--from` only when the user gave it: the branch is cut from `origin/<分支>` and `<分支>` is recorded as its base, so `/g`, `/g ship` (default target) and `/g sync` follow it. Without it, behaviour is unchanged (base branch).
+6. Report: branch, base (the `--from` branch when given), stored description.
 
 ## `/g commit [描述]`
 
@@ -75,7 +76,7 @@ MR：<无 | !iid (opened → target) url | !iid 已合并 url | 未知（原因�
    ```
 
    Commits come from `git log origin/<target>..HEAD --oneline`; drop the hashes, fold fixup/wip-style commits into the line they belong to. One verification bullet, two at most. The body ends at the last bullet: no `--stat` block, no summary paragraph, no `Co-Authored-By` / `Generated with Claude Code` / session-link trailer — the harness's default PR attribution does not apply to `/g` output.
-5. **Gate:** show title, target (default = base), assignee (or "none") and wait for approval.
+5. **Gate:** show title, target (default = `g.js base` — the branch's recorded base when it has one), assignee (or "none") and wait for approval.
 6. Write the body to a temp file with the Write tool (e.g. `<os tmpdir>/g-mr-description.md`), then `node <skill-dir>/g.js mr-create --title "<t>" --description-file <path> [--assignee <username>] [--target <branch>]`. Never pass the body inline (shell quoting mangles backticks / `$`); keep the title free of backticks / `$`.
    - `existing: true` → an MR already existed (or was created meanwhile); report that URL.
    - `GitLab user "..." not found` → nothing was created; ask for the username (not display name).
@@ -83,14 +84,14 @@ MR：<无 | !iid (opened → target) url | !iid 已合并 url | 未知（原因�
 
 ## `/g sync`
 
-Same result from any branch: back on base, fast-forwarded, merged branches gone.
+Back on the current branch's base (its `--from` branch, else the repo base), fast-forwarded, merged branches gone.
 
-1. Tree must be clean (shared rules). `node <skill-dir>/g.js base` → `<base>`.
+1. Tree must be clean (shared rules). `node <skill-dir>/g.js base` → `<base>` (run it **before** switching — it depends on the current branch).
 2. `git fetch --prune origin`; if not on `<base>`, `git switch <base>`.
 3. `git pull --ff-only origin <base>`. If git refuses → stop, show `git log origin/<base>..<base> --oneline`, explain local `<base>` has commits origin lacks, do **not** merge/rebase, skip cleanup.
-4. `node <skill-dir>/g.js merged-branches` → without asking, `node <skill-dir>/g.js delete-branches <name...>` for every listed name. Empty → skip.
+4. `node <skill-dir>/g.js merged-branches` (each branch is judged against its own base; branches others were started from are never listed) → without asking, `node <skill-dir>/g.js delete-branches <name...>` for every listed name. Empty → skip.
 5. Report: commits `<base>` advanced, deleted branches with reason (merged / gone), and `failed` entries with git's reason — those are the user's call.
 
 ## Scope
 
-In: start / commit / ship / sync / status for one repo with one base branch. Out: rebase, merging base into a feature branch, MR merge or reviewer fields, multiple repos, Jira API, notifications.
+In: start / commit / ship / sync / status for one repo, with one base branch per feature branch. Out: rebase, merging base into a feature branch, MR merge or reviewer fields, multiple repos, Jira API, notifications.

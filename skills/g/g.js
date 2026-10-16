@@ -2,8 +2,8 @@
 import { createGit } from "./lib/git.js";
 import { resolveContext, createClient } from "./lib/gitlab-api.js";
 import { USAGE, parseBranchNameArgs, parseStartArgs, parseMrCreateArgs, parseDeleteArgs } from "./lib/args.js";
-import { buildBranchName, computeMergedBranches } from "./lib/branches.js";
-import { resolveBase, collectStatus } from "./lib/status.js";
+import { buildBranchName } from "./lib/branches.js";
+import { resolveBase, resolveBranchBase, collectStatus, collectCleanup } from "./lib/status.js";
 import { findMr, resolveUserId, ensureMr } from "./lib/mr.js";
 
 const COMMANDS = ["status", "base", "branch-name", "start", "push", "mr-find", "mr-create", "merged-branches", "delete-branches"];
@@ -47,23 +47,25 @@ async function main() {
   if (cmd === "status") {
     result = await collectStatus({ git, gitlab: tryGitlab(git) });
   } else if (cmd === "base") {
-    result = await resolveBase({ git, gitlab: tryGitlab(git) });
+    result = await resolveBranchBase({ git, gitlab: tryGitlab(git), branch: git.currentBranch() });
   } else if (cmd === "branch-name") {
     const name = buildBranchName(parsed);
     result = { name, existsLocal: git.localBranchExists(name), existsRemote: git.remoteBranchExists(name) };
   } else if (cmd === "start") {
     const { name, description, from } = parsed;
     if (git.localBranchExists(name)) throw new Error(`Branch "${name}" already exists locally. Reuse it (git switch ${name}) or pick another name.`);
-    // --from overrides the start point for this branch only; the repo's base branch is unchanged.
+    // --from overrides the base for this branch only (recorded, so status/push/mr-create/sync follow it);
+    // the repo's base branch is unchanged.
     if (from && !git.remoteBranchExists(from)) throw new Error(`Source branch "${from}" does not exist on origin.`);
     const base = from ?? (await resolveBase({ git, gitlab: tryGitlab(git) })).base;
     git.fetchBranch(base);
     git.switchCreate(name, `origin/${base}`);
+    if (from) git.setBranchBase(name, from);
     if (description) git.setDescription(name, description);
     result = { name, base, description };
   } else if (cmd === "push") {
     const branch = requireBranch(git);
-    const { base } = await resolveBase({ git, gitlab: tryGitlab(git) });
+    const { base } = await resolveBranchBase({ git, gitlab: tryGitlab(git), branch });
     if (branch === base) throw new Error(`Refusing to push: you are on the base branch "${base}". Start a branch with /g start first.`);
     const count = git.unpushed() ?? git.tryRun(["rev-list", "--count", `origin/${base}..HEAD`]);
     const before = count === null ? null : Number(count);
@@ -76,7 +78,7 @@ async function main() {
   } else if (cmd === "mr-create") {
     const branch = requireBranch(git);
     const gitlab = requireGitlab(git);
-    const { base } = await resolveBase({ git, gitlab });
+    const { base } = await resolveBranchBase({ git, gitlab, branch });
     if (branch === base) throw new Error(`Refusing to create an MR from the base branch "${base}".`);
     const target = parsed.target ?? base;
     if (!git.remoteBranchExists(branch)) throw new Error(`origin/${branch} does not exist yet — push first.`);
@@ -92,10 +94,7 @@ async function main() {
   } else if (cmd === "merged-branches") {
     const { base } = await resolveBase({ git, gitlab: tryGitlab(git) });
     git.fetchPrune();
-    result = {
-      base,
-      branches: computeMergedBranches({ merged: git.listMerged(base), tracked: git.listTracked(), base, current: git.currentBranch() }),
-    };
+    result = { base, branches: collectCleanup({ git, repoBase: base, current: git.currentBranch() }) };
   } else if (cmd === "delete-branches") {
     const deleted = [];
     const failed = [];

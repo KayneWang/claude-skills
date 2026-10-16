@@ -83,6 +83,28 @@ test("start --from branches off origin/<from> instead of the base branch", async
 
   assert.match(await gFails(["start", "feat/demo-3", "--from", "nope"], work), /Source branch "nope" does not exist on origin/);
   assert.equal(sh(work, ["branch", "--show-current"]), "feat/demo-2");
+
+  // The source branch is recorded and becomes this branch's base for base / push / status.
+  assert.equal(sh(work, ["config", "--get", "branch.feat/demo-2.g-base"]), "develop");
+  assert.deepEqual(await g(["base"], work), { base: "develop", source: "branch" });
+  writeFileSync(path.join(work, "b.txt"), "b\n");
+  sh(work, ["add", "."]);
+  sh(work, ["commit", "-m", "feat: add b"]);
+  assert.deepEqual(await g(["push"], work), { branch: "feat/demo-2", pushed: 1 });
+  const status = await g(["status"], work);
+  assert.deepEqual(status.base, { base: "develop", source: "branch" });
+  assert.equal(status.ahead, 1);
+  assert.equal(status.behind, 0);
+
+  // Merged into develop (not main): sync's cleanup still finds it, and keeps develop itself.
+  sh(work, ["switch", "develop"]);
+  sh(work, ["merge", "--no-ff", "feat/demo-2", "-m", "Merge feat/demo-2"]);
+  sh(work, ["push", "origin", "develop"]);
+  assert.deepEqual(await g(["base"], work), { base: "main", source: "origin-head" });
+  assert.deepEqual(await g(["merged-branches"], work), { base: "main", branches: [{ name: "feat/demo-2", reason: "merged" }] });
+  assert.deepEqual((await g(["delete-branches", "feat/demo-2"], work)).deleted, ["feat/demo-2"]);
+  // `git branch -d` drops the recorded base with the branch (get-regexp exits 1 on no match).
+  assert.throws(() => sh(work, ["config", "--get-regexp", "^branch\\..*\\.g-base$"]));
 });
 
 test("git-mode lifecycle: base → branch-name → start → push → merged-branches → delete-branches", async (t) => {
