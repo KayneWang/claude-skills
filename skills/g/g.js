@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 import { createGit } from "./lib/git.js";
 import { resolveContext, createClient } from "./lib/gitlab-api.js";
-import { USAGE, parseBranchNameArgs, parseStartArgs, parseMrCreateArgs, parseDeleteArgs } from "./lib/args.js";
+import { USAGE, parseBranchNameArgs, parseStartArgs, parseMrCreateArgs, parseDeleteArgs, parseConflictsArgs } from "./lib/args.js";
+import { startConflicts } from "./lib/conflicts.js";
 import { buildBranchName } from "./lib/branches.js";
 import { resolveBase, resolveBranchBase, collectStatus, collectCleanup } from "./lib/status.js";
 import { findMr, resolveUserId, ensureMr } from "./lib/mr.js";
 
-const COMMANDS = ["status", "base", "branch-name", "start", "push", "mr-find", "mr-create", "merged-branches", "delete-branches"];
+const COMMANDS = ["status", "base", "branch-name", "start", "push", "mr-find", "mr-create", "merged-branches", "delete-branches", "conflicts"];
 
 // GitLab context is optional for git-mode commands: null when no token / unresolvable remote.
 function tryGitlab(git) {
@@ -39,6 +40,7 @@ async function main() {
     : cmd === "start" ? parseStartArgs(rest)
     : cmd === "mr-create" ? parseMrCreateArgs(rest)
     : cmd === "delete-branches" ? parseDeleteArgs(rest)
+    : cmd === "conflicts" ? parseConflictsArgs(rest)
     : null;
 
   const git = createGit();
@@ -107,6 +109,9 @@ async function main() {
       }
     }
     result = { deleted, failed };
+  } else if (cmd === "conflicts") {
+    const branch = requireBranch(git);
+    result = await startConflicts({ git, gitlab: tryGitlab(git), branch, target: parsed.target });
   }
 
   // Single-line JSON: this output lands in the agent's context on every call.

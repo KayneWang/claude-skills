@@ -176,3 +176,79 @@ test("mr-find / mr-create refuse a detached HEAD", async (t) => {
   assert.match(await gFails(["mr-find"], work), /Detached HEAD: switch to a branch first\./);
   assert.match(await gFails(["mr-create", "--title", "t", "--description", "d"], work), /Detached HEAD: switch to a branch first\./);
 });
+
+// ---- conflicts: merge origin/<target> into the current branch, uncommitted ----
+
+function commitFile(work, file, content, msg) {
+  writeFileSync(path.join(work, file), content);
+  sh(work, ["add", "."]);
+  sh(work, ["commit", "-m", msg]);
+}
+
+test("conflicts: argument errors and refusals", async (t) => {
+  const { root, work } = setupRepo();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  assert.match(await gFails(["conflicts", "a", "b"]), /Unexpected argument: b/);
+  assert.match(await gFails(["conflicts", "--rebase"]), /Unknown flag: --rebase/);
+
+  assert.match(await gFails(["conflicts"], work), /Refusing to merge on the base branch "main"/);
+
+  sh(work, ["switch", "-c", "feat/demo-1"]);
+  assert.match(await gFails(["conflicts", "feat/demo-1"], work), /into itself/);
+  assert.match(await gFails(["conflicts", "nope"], work), /"nope" does not exist on origin/);
+  writeFileSync(path.join(work, "dirty.txt"), "x\n");
+  assert.match(await gFails(["conflicts"], work), /uncommitted changes/);
+});
+
+test("conflicts: up to date, clean merge, then conflicts tagged by kind / binary / lockfile", async (t) => {
+  const { root, work } = setupRepo();
+  t.after(() => rmSync(root, { recursive: true, force: true }));
+  commitFile(work, "shared.txt", "base\n", "chore: shared");
+  commitFile(work, "gone.txt", "keep\n", "chore: gone");
+  commitFile(work, "package-lock.json", "{}\n", "chore: lock");
+  commitFile(work, "logo.bin", Buffer.from([0, 1, 2, 3]), "chore: bin");
+  sh(work, ["push", "origin", "main"]);
+  assert.equal((await g(["start", "feat/demo-1"], work)).base, "main");
+
+  assert.deepEqual(await g(["conflicts"], work), { target: "main", resumed: false, merged: 0, upToDate: true, conflicts: [] });
+
+  // Clean: main gains an unrelated file → merge staged, not committed.
+  sh(work, ["switch", "main"]);
+  commitFile(work, "other.txt", "o\n", "chore: other");
+  sh(work, ["push", "origin", "main"]);
+  sh(work, ["switch", "feat/demo-1"]);
+  commitFile(work, "mine.txt", "m\n", "feat: mine");
+  assert.deepEqual(await g(["conflicts"], work), { target: "main", resumed: false, merged: 1, upToDate: false, conflicts: [] });
+  assert.equal(sh(work, ["rev-parse", "-q", "--verify", "MERGE_HEAD"]), sh(work, ["rev-parse", "origin/main"]));
+  sh(work, ["commit", "--no-edit"]);
+
+  // Conflicting: both sides edit shared / lock / bin; main deletes gone.txt while the branch edits it.
+  sh(work, ["switch", "main"]);
+  writeFileSync(path.join(work, "shared.txt"), "theirs\n");
+  writeFileSync(path.join(work, "package-lock.json"), '{"a":1}\n');
+  writeFileSync(path.join(work, "logo.bin"), Buffer.from([0, 9, 9, 9]));
+  sh(work, ["rm", "-q", "gone.txt"]);
+  sh(work, ["add", "."]);
+  sh(work, ["commit", "-m", "chore: theirs"]);
+  sh(work, ["push", "origin", "main"]);
+  sh(work, ["switch", "feat/demo-1"]);
+  writeFileSync(path.join(work, "shared.txt"), "ours\n");
+  writeFileSync(path.join(work, "package-lock.json"), '{"b":2}\n');
+  writeFileSync(path.join(work, "logo.bin"), Buffer.from([0, 7, 7, 7]));
+  writeFileSync(path.join(work, "gone.txt"), "edited\n");
+  sh(work, ["add", "."]);
+  sh(work, ["commit", "-m", "feat: ours"]);
+
+  const res = await g(["conflicts"], work);
+  assert.equal(res.merged, 1);
+  const byPath = Object.fromEntries(res.conflicts.map((c) => [c.path, c]));
+  assert.deepEqual(byPath["shared.txt"], { path: "shared.txt", kind: "both-modified", binary: false, lockfile: false });
+  assert.deepEqual(byPath["package-lock.json"], { path: "package-lock.json", kind: "both-modified", binary: false, lockfile: true });
+  assert.deepEqual(byPath["logo.bin"], { path: "logo.bin", kind: "both-modified", binary: true, lockfile: false });
+  assert.deepEqual(byPath["gone.txt"], { path: "gone.txt", kind: "deleted-by-them", binary: false, lockfile: false });
+
+  // Re-running mid-merge resumes instead of refusing the dirty tree.
+  const again = await g(["conflicts"], work);
+  assert.equal(again.resumed, true);
+  assert.equal(again.conflicts.length, 4);
+});

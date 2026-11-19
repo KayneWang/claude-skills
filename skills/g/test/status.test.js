@@ -174,3 +174,9 @@ test("collectStatus: a recorded base gone from origin does not break cleanup", a
   });
   assert.deepEqual(s.cleanup.map((c) => c.name), ["feat/old"]);
 });
+
+test("computeAdvice: behind base → /g conflicts (not on base, not after merge)", () => {
+  assert.deepEqual(computeAdvice({ ...baseline, behind: 3 }), ["main 有 3 个新提交，可用 /g conflicts 合入"]);
+  assert.deepEqual(computeAdvice({ ...baseline, onBase: true, behind: 3 }), ["一切就绪"]);
+  assert.deepEqual(computeAdvice({ ...baseline, behind: 3, mr: { state: "merged" } }), ["/g sync 回到 main 并清理"]);
+});

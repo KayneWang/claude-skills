@@ -137,5 +137,26 @@ export function createGit({ exec = defaultExec } = {}) {
     deleteBranch(name) {
       run(["branch", "-d", name]);
     },
+
+    mergeInProgress: () => tryRun(["rev-parse", "-q", "--verify", "MERGE_HEAD"]) !== null,
+
+    // Always a merge commit (never fast-forward), left uncommitted so the agent finishes it.
+    // Throws on conflicts too; callers inspect unmergedFiles() to tell conflicts from errors.
+    mergeNoCommit(ref) {
+      run(["merge", "--no-ff", "--no-commit", ref]);
+    },
+
+    // Unmerged paths with their two-letter porcelain code (UU, AA, DU, UD, AU, UA, DD).
+    unmergedFiles() {
+      const codes = new Set(["UU", "AA", "DU", "UD", "AU", "UA", "DD"]);
+      // -z: NUL-separated, paths unquoted (spaces / non-ascii names come through verbatim).
+      return exec(["status", "--porcelain", "-z", "--untracked-files=no"])
+        .split("\0")
+        .filter((l) => codes.has(l.slice(0, 2)))
+        .map((l) => ({ code: l.slice(0, 2), path: l.slice(3) }));
+    },
+
+    // Binary on either side of the merge: numstat prints "-\t-" for binary content.
+    isBinaryInMerge: (path) => /^-\t-\t/.test(tryRun(["diff", "--numstat", "HEAD", "MERGE_HEAD", "--", path]) ?? ""),
   };
 }
