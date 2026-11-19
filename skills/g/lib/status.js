@@ -97,6 +97,7 @@ export function computeAdvice(s) {
   if (!s.branchValid && !s.onBase) out.push("分支名不符合 type/xxx 规范，建议 /g start 新开分支后 cherry-pick");
   if (!s.status.clean) out.push("/g commit 提交并推送");
   if (s.status.clean && needsPush && !s.onBase) out.push(s.mr.state === "opened" ? "/g commit 推送本地 commit" : "/g ship <assignee> 创建 MR");
+  if (!s.onBase && (s.behind ?? 0) > 0 && s.mr.state !== "merged") out.push(`${base} 有 ${s.behind} 个新提交，可用 /g conflicts 合入`);
   if (s.mr.state === "merged") out.push(`/g sync 回到 ${base} 并清理`);
   if (s.cleanup.length) out.push("/g sync 会自动删除上面的待清理分支");
   return out.length ? out : ["一切就绪"];

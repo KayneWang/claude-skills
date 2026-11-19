@@ -10,7 +10,8 @@ export const USAGE = `Usage: g.js <command>
   mr-find
   mr-create --title <t> (--description <d> | --description-file <path>) [--assignee <username>] [--target <branch>]
   merged-branches
-  delete-branches <name...>`;
+  delete-branches <name...>
+  conflicts [branch]`;
 
 // Generic "--flag value" parser. allowed: list of flag names (with dashes).
 function parseFlags(argv, allowed) {
@@ -79,4 +80,11 @@ export function parseMrCreateArgs(argv) {
 export function parseDeleteArgs(argv) {
   if (!argv.length) throw new Error(`delete-branches needs at least one branch name\n${USAGE}`);
   return argv;
+}
+
+export function parseConflictsArgs(argv) {
+  if (argv.length > 1) throw new Error(`Unexpected argument: ${argv[1]}\n${USAGE}`);
+  const [target] = argv;
+  if (target !== undefined && target.startsWith("-")) throw new Error(`Unknown flag: ${target}\n${USAGE}`);
+  return { target: target ?? null };
 }

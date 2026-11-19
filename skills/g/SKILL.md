@@ -1,6 +1,6 @@
 ---
 name: g
-description: "Use when the user runs `/g` or asks for the team git workflow — e.g. \"/g start fix demo-111\", \"/g commit\", \"/g ship jane.doe\", \"/g sync\", \"开个分支\", \"提交并推送\", \"建个 MR 给 xxx\", \"同步基准分支\", \"清理已合并的分支\"."
+description: "Use when the user runs `/g` or asks for the team git workflow — e.g. \"/g start fix demo-111\", \"/g commit\", \"/g ship jane.doe\", \"/g sync\", \"/g conflicts\", \"开个分支\", \"提交并推送\", \"建个 MR 给 xxx\", \"同步基准分支\", \"合入 main 解决冲突\", \"处理代码冲突\", \"清理已合并的分支\"."
 ---
 
 # g (`/g`)
@@ -16,8 +16,9 @@ One entry point for the team git standard. Every deterministic git / GitLab step
 | `/g commit` | `[描述]` | commit `type: 描述` **and push**; push-only when the tree is clean |
 | `/g ship` | `[assignee] [target]` | push, then create a non-Draft MR (assignee = GitLab username; target defaults to base) |
 | `/g sync` | — | return to base, ff-only pull, auto-delete merged local branches |
+| `/g conflicts` | `[branch]` | merge `origin/<branch>` (default = this branch's base) into the current branch, resolve conflicts, commit, push |
 
-Synonyms (accept silently, never mention them): `gst` → `/g`, `gcb` → `start`, `gc` / `gcmsg` / `gp` / `gpsup` → `commit`, `gl` → `sync`. Anything else after `/g` → show the verb table.
+Synonyms (accept silently, never mention them): `gst` → `/g`, `gcb` → `start`, `gc` / `gcmsg` / `gp` / `gpsup` → `commit`, `gl` → `sync`, `gm` → `conflicts`. Anything else after `/g` → show the verb table.
 
 Types: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`. Jira key looks like `demo-111` (any case; always lowercased).
 
@@ -26,8 +27,8 @@ Types: `feat`, `fix`, `chore`, `refactor`, `docs`, `test`. Jira key looks like `
 - Needs a git repo with an `origin` remote; otherwise stop.
 - `GITLAB_TOKEN` (PAT, `api` scope) is required for `ship` and for MR info in the panel. `status` / `start` / `sync` work without it (base = `origin/HEAD`). Self-hosted: host/project come from the remote URL; `GITLAB_HOST` / `GITLAB_PROJECT` override.
 - **Base is per branch:** `g.js base` / `status` / `push` / `mr-create` use the base `start --from` recorded for the current branch, else the repo base. Always ask `g.js` — never assume the repo default.
-- **On base is refused** for `commit` and `ship`: if `git branch --show-current` equals `g.js base`, stop and point to `/g start`.
-- **Dirty tree** (`git status --porcelain` non-empty) blocks `start` and `sync`: ask stash / commit first / abort. Never discard changes.
+- **On base is refused** for `commit`, `ship` and `conflicts`: if `git branch --show-current` equals `g.js base`, stop and point to `/g start`.
+- **Dirty tree** (`git status --porcelain` non-empty) blocks `start`, `sync` and `conflicts`: ask stash / commit first / abort. Never discard changes.
 - **Errors:** relay the stderr line verbatim — it already contains the fix (token setup, `GITLAB_HOST`, reuse-vs-rename, ...). Any `Refusing to ...` → point to `/g start`. Never force-push, never `branch -D`.
 - **Context budget:** read `--stat` / `--oneline` output, not full diffs, unless a specific file needs a look.
 
@@ -92,6 +93,21 @@ Back on the current branch's base (its `--from` branch, else the repo base), fas
 4. `node <skill-dir>/g.js merged-branches` (each branch is judged against its own base; branches others were started from are never listed) → without asking, `node <skill-dir>/g.js delete-branches <name...>` for every listed name. Empty → skip.
 5. Report: commits `<base>` advanced, deleted branches with reason (merged / gone), and `failed` entries with git's reason — those are the user's call.
 
+## `/g conflicts [branch]`
+
+Merge (never rebase, never force-push) `origin/<branch>` into the current branch; `<branch>` defaults to `g.js base`.
+
+1. `node <skill-dir>/g.js conflicts [branch]` — refuses on base, on a dirty tree, for a branch missing on origin, or for the current branch itself; relay the stderr line. It fetches and runs `git merge --no-ff --no-commit`, returning `{target, resumed, merged, upToDate, conflicts: [{path, kind, binary, lockfile}]}`. `resumed: true` means a merge was already under way — carry on with its conflicts.
+2. `upToDate` → report "已包含 `<target>` 的全部提交" and stop.
+3. Resolve each entry of `conflicts`:
+   - **Ask the user, one by one**, for: `kind` other than `both-modified` / `both-added` (modify/delete etc.), `binary: true`, `lockfile: true` (suggest taking `<target>`'s side with `git checkout --theirs <path>` and re-running the package install afterwards), and any hunk where the two sides conflict in intent and picking needs business judgment.
+   - Everything else: read the file's conflict hunks and write a merged version that keeps both sides' intent. Read only the conflicted files, not the whole diff.
+   - `git add <path>` (or `git rm <path>`) for each resolved path.
+4. Verify: `git diff --cached --check` passes and `git grep -nE '^(<<<<<<<|>>>>>>>)( |$)' -- <resolved paths>` finds nothing. Otherwise fix before going on.
+5. **Gate:** one line per file — `path — N 处冲突 — 处理方式（保留本分支 / 保留 <target> / 两边合并 / 用户决定）`, plus the merged commit count. Show a file's resolved hunks only when asked. On rejection or any failure: `git merge --abort` (the branch is back as before) and stop.
+6. `git commit --no-edit` (git's default `Merge remote-tracking branch ...` message; no trailers), then `node <skill-dir>/g.js push`. On `Push rejected` follow `/g commit` step 4.
+7. Report: target, commits merged, files resolved (and how), pushed. Remind the user to run the project's tests locally.
+
 ## Scope
 
-In: start / commit / ship / sync / status for one repo, with one base branch per feature branch. Out: rebase, merging base into a feature branch, MR merge or reviewer fields, multiple repos, Jira API, notifications.
+In: start / commit / ship / sync / conflicts / status for one repo, with one base branch per feature branch. Out: rebase, MR merge or reviewer fields, multiple repos, Jira API, notifications.

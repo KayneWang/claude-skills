@@ -1,6 +1,6 @@
 # g
 
-团队 git 规范的统一入口 `/g`：开分支 → 提交并推送 → 建 MR → 同步基准分支。规范靠护栏拦，不靠人记；macOS 和 Windows 都能用。
+团队 git 规范的统一入口 `/g`：开分支 → 提交并推送 → 合入基准分支解决冲突 → 建 MR → 同步基准分支。规范靠护栏拦，不靠人记；macOS 和 Windows 都能用。
 
 > 本文档讲**怎么配置和使用**。`SKILL.md` 是给 agent 看的执行指令，无需手动阅读。
 
@@ -13,6 +13,7 @@
 | `/g commit [描述]` | 生成 `type: 描述` 的 commit（type 从分支名推断）并**自动推送**。工作区干净时只推送 |
 | `/g ship [assignee] [目标分支]` | 推送并创建 MR。`/g ship jane.doe` → 目标为基准分支、assignee 为 jane.doe；`/g ship jane.doe alpha` → 目标 alpha。标题自动拼成 `fix: demo-111 描述`，建之前给你确认 |
 | `/g sync` | 回到基准分支，fast-forward 拉取，**自动删除**本地已合并的分支 |
+| `/g conflicts [分支]` | 把 `origin/<分支>`（默认是当前分支的基准分支）**merge** 进当前分支：普通冲突由 agent 合成，删改冲突、二进制、锁文件和需要业务判断的冲突逐个问你；提交前列出每个文件怎么处理的给你确认，然后提交并推送。放弃则 `git merge --abort` 复原。从不 rebase、不 force-push |
 
 type 只认六种：`feat`、`fix`、`chore`、`refactor`、`docs`、`test`。
 
@@ -28,7 +29,7 @@ type 只认六种：`feat`、`fix`、`chore`、`refactor`、`docs`、`test`。
 
 ### 1. GitLab Personal Access Token
 
-`/g ship` 和状态面板里的 MR 信息需要它；`/g start`、`/g commit`、`/g sync` 没有 token 也能用。
+`/g ship` 和状态面板里的 MR 信息需要它；`/g start`、`/g commit`、`/g sync`、`/g conflicts` 没有 token 也能用。
 
 在 GitLab 生成：`Preferences → Access Tokens` → 勾选 **`api`** scope → Create → 立刻复制。写进 shell 配置即可全局生效：
 
@@ -63,14 +64,15 @@ node <skill-dir>/g.js mr-find
 node <skill-dir>/g.js mr-create --title <t> (--description <d> | --description-file <path>) [--assignee <username>] [--target <branch>]
 node <skill-dir>/g.js merged-branches
 node <skill-dir>/g.js delete-branches <name...>
+node <skill-dir>/g.js conflicts [branch]
 ```
 
 Node 18+，零 npm 依赖。测试：`npm test`。
 
 ## 范围与边界
 
-- **做**：一个仓库、一个基准分支下的 start / commit / ship / sync / 状态面板。
-- **不做**：rebase、把基准分支合进功能分支、MR 合并与 reviewer 字段、多仓库、Jira API、通知本身。
+- **做**：一个仓库、一个基准分支下的 start / commit / ship / sync / conflicts / 状态面板。
+- **不做**：rebase、MR 合并与 reviewer 字段、多仓库、Jira API、通知本身。
 
 ## 常见问题
 
